@@ -1,0 +1,172 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+body {
+    margin: 0;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: #0A0A0C;
+    color: #F4F4F6;
+}
+
+code, .mono {
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.font-display {
+    font-family: 'Outfit', sans-serif;
+    letter-spacing: -0.02em;
+}
+
+@layer base {
+    :root {
+        --background: 240 6% 4%;
+        --foreground: 240 5% 96%;
+        --card: 240 7% 9%;
+        --card-foreground: 240 5% 96%;
+        --popover: 240 7% 9%;
+        --popover-foreground: 240 5% 96%;
+        --primary: 45 70% 53%;
+        --primary-foreground: 0 0% 5%;
+        --secondary: 240 5% 16%;
+        --secondary-foreground: 240 5% 96%;
+        --muted: 240 5% 16%;
+        --muted-foreground: 240 5% 65%;
+        --accent: 45 70% 53%;
+        --accent-foreground: 0 0% 5%;
+        --destructive: 0 72% 51%;
+        --destructive-foreground: 240 5% 96%;
+        --border: 240 6% 20%;
+        --input: 240 6% 14%;
+        --ring: 45 70% 53%;
+        --radius: 0.75rem;
+    }
+}
+
+* {
+    border-color: hsl(var(--border));
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: #0A0A0C; }
+::-webkit-scrollbar-thumb { background: #2a2a30; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #D4AF37; }
+
+.gold-text {
+    background: linear-gradient(135deg, var(--dl-accent, #F3E5AB) 0%, var(--dl-primary, #D4AF37) 50%, var(--dl-primary, #997A15) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.gold-glow {
+    box-shadow: 0 0 24px color-mix(in srgb, var(--dl-primary, #D4AF37) 25%, transparent);
+}
+
+.gold-ring-hover:hover {
+    box-shadow: 0 8px 30px color-mix(in srgb, var(--dl-primary, #D4AF37) 18%, transparent);
+    border-color: color-mix(in srgb, var(--dl-primary, #D4AF37) 55%, transparent);
+}
+
+/* ===== Global theme overrides — makes hardcoded hex colors react to admin settings ===== */
+.text-\[\#D4AF37\] { color: var(--dl-primary, #D4AF37) !important; }
+.bg-\[\#D4AF37\] { background-color: var(--dl-primary, #D4AF37) !important; }
+.border-\[\#D4AF37\] { border-color: var(--dl-primary, #D4AF37) !important; }
+.text-\[\#F3E5AB\] { color: var(--dl-accent, #F3E5AB) !important; }
+.bg-\[\#F3E5AB\] { background-color: var(--dl-accent, #F3E5AB) !important; }
+.bg-\[\#C5A059\] { background-color: var(--dl-button-hover, #C5A059) !important; }
+.bg-\[\#121215\] { background-color: var(--dl-card-bg, #121215) !important; }
+.bg-\[\#0A0A0C\] { background-color: var(--dl-body-bg, #0A0A0C) !important; }
+.bg-\[\#18181D\] { background-color: color-mix(in srgb, var(--dl-card-bg, #18181D) 85%, white 5%) !important; }
+.from-\[\#D4AF37\] { --tw-gradient-from: var(--dl-primary, #D4AF37) !important; }
+.via-\[\#F3E5AB\] { --tw-gradient-via: var(--dl-accent, #F3E5AB) !important; }
+.to-\[\#C5A059\] { --tw-gradient-to: var(--dl-button-hover, #C5A059) !important; }
+.to-\[\#997A15\] { --tw-gradient-to: var(--dl-primary, #997A15) !important; }
+
+.grain::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.05;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.lotus-logo {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+}
+
+input, button, select, textarea {
+    font-family: inherit;
+}
+
+/* ===== Dynamic theme classes ===== */
+.dl-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    background: #0A0A0C;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 0.5rem;
+    color: #F4F4F6;
+    font-size: 0.875rem;
+}
+.dl-input:focus {
+    outline: none;
+    border-color: var(--dl-primary, #D4AF37);
+}
+.dl-light { background: #FAFAFA !important; color: #18181B !important; }
+.dl-light .dl-input { background: #FFFFFF; border-color: rgba(0,0,0,0.1); color: #18181B; }
+
+/* D'Lotus mobile/tablet layout fixes */
+html { -webkit-text-size-adjust: 100%; }
+html, body, #root { width: 100%; min-height: 100%; }
+body { overflow-x: hidden; }
+button, a, input, select, textarea { touch-action: manipulation; }
+@media (max-width: 767px) {
+  .mobile-topbar { padding-top: max(8px, env(safe-area-inset-top)); }
+  .mobile-bottom-nav { padding-bottom: env(safe-area-inset-bottom); }
+  input, select, textarea { font-size: max(16px, 1em); }
+  main > div:not(.mobile-bottom-nav) { max-width: 100%; }
+  .overflow-x-auto { -webkit-overflow-scrolling: touch; }
+  table { max-width: 100%; }
+  [role="dialog"] { max-width: calc(100vw - 24px); max-height: calc(100dvh - 32px); overflow-y: auto; }
+}
+
+/* Responsividade V2: operações de caixa, portaria e produção */
+*, *::before, *::after { box-sizing: border-box; }
+#root { min-width: 0; }
+@media (max-width: 767px) {
+  main, main > *, [data-radix-scroll-area-viewport] { min-width: 0; }
+  main { overflow-x: clip; }
+  main input:not([type="checkbox"]):not([type="radio"]), main select, main textarea { max-width: 100%; min-width: 0; }
+  main button { overflow-wrap: anywhere; }
+  main .grid > * { min-width: 0; }
+  main .fixed.inset-0 { padding-top: max(12px, env(safe-area-inset-top)); padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+  main .fixed.inset-0 > div { max-width: 100%; max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain; }
+  main table { width: max-content; min-width: 100%; }
+  main th, main td { white-space: nowrap; }
+}
+@media (pointer: coarse) { main button, main [role="button"] { min-height: 40px; } }
+
+/* DLOTUS V6: fundo escuro fixo, acentos sincronizados com Configuracoes. */
+:root { color-scheme: dark; }
+html, body, #root { background-color: #09090b !important; }
+.dl-light { background: #09090b !important; color: #f4f4f6 !important; }
+/* Containers de pagina e cards continuam escuros, inclusive Estoque e Compras. */
+.bg-blue-950, .bg-blue-900, .bg-sky-950, .bg-indigo-950,
+.bg-\[\#0C1322\], .bg-\[\#0A0F1F\], .bg-\[\#060A14\] { background-color: #121215 !important; }
+/* Cores decorativas devem acompanhar o tema selecionado. */
+.text-blue-400, .text-blue-300, .text-blue-500, .text-sky-400,
+.text-indigo-400, .text-purple-400, .text-amber-400,
+.text-yellow-400, .text-cyan-400 { color: var(--dl-primary, #3b82f6) !important; }
+.border-blue-500, .border-blue-400, .border-sky-500,
+.border-purple-500, .border-amber-500 { border-color: var(--dl-primary, #3b82f6) !important; }
+.bg-blue-600, .bg-blue-700, .bg-blue-500, .bg-sky-600,
+.bg-indigo-600, .bg-purple-600, .bg-amber-500 { background-color: var(--dl-primary, #3b82f6) !important; }
+.hover\:bg-blue-600:hover, .hover\:bg-blue-700:hover { background-color: var(--dl-button-hover, #2563eb) !important; }

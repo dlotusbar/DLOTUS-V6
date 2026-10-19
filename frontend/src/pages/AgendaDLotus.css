@@ -1,0 +1,78 @@
+/* Agenda D'Lotus: tema noturno, responsivo e acessível */
+.agenda-night {position:relative;isolation:isolate;overflow:hidden;background:radial-gradient(ellipse at 10% 8%,rgba(191,24,255,.22),transparent 37%),radial-gradient(ellipse at 90% 16%,rgba(0,212,255,.19),transparent 37%),linear-gradient(145deg,#080716,#100a25 55%,#080e20)!important;min-height:100vh}
+.agenda-night::before {content:"";position:absolute;inset:0 0 auto;height:380px;pointer-events:none;z-index:-1;background:repeating-linear-gradient(110deg,transparent 0 60px,rgba(176,71,255,.035) 61px 63px,transparent 64px 130px);mask-image:linear-gradient(black,transparent)}
+.agenda-night h1 {font-size:clamp(2rem,4vw,3.7rem);letter-spacing:-.04em;text-shadow:0 0 30px rgba(141,69,255,.4)}
+.agenda-night h1 span {color:#e879f9!important}
+.agenda-night button {min-height:42px;touch-action:manipulation;transition:transform .17s ease,box-shadow .17s ease,filter .17s ease}
+.agenda-night button:hover:not(:disabled) {filter:brightness(1.13);box-shadow:0 0 19px rgba(177,83,255,.23)}
+.agenda-night button:active:not(:disabled) {transform:scale(.96)}
+.agenda-night button:focus-visible,.agenda-night input:focus-visible,.agenda-night select:focus-visible,.agenda-night textarea:focus-visible {outline:2px solid #f0abfc;outline-offset:2px}
+.agenda-night input,.agenda-night select,.agenda-night textarea {min-height:44px;max-width:100%;background-color:#140f2b!important;border-color:#56416d!important;color:#fff}
+.agenda-night [class*="bg-[#111c2b]"],.agenda-night [class*="bg-[#142033]"] {background-color:rgba(26,17,52,.94)!important;border-color:rgba(197,113,255,.27)!important}
+.agenda-night [class*="bg-sky-600"],.agenda-night [class*="bg-sky-700"] {background:linear-gradient(110deg,#9333ea,#db2777)!important}
+.agenda-night [class*="border-slate-700"] {border-color:rgba(183,131,255,.26)}
+@media(max-width:640px){.agenda-night {padding:16px!important}.agenda-night button{min-height:46px}.agenda-night h1{line-height:1.1}}
+@media(prefers-reduced-motion:reduce){.agenda-night button{transition:none!important}}
+
+/* Cabeçalho da Agenda — correção de espaçamento preservada na V6 Reservas */
+.agenda-night .agenda-hero{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:clamp(24px,4vw,44px);padding:clamp(26px,4vw,46px);border:1px solid rgba(151,115,255,.4);border-radius:24px;background:linear-gradient(120deg,rgba(28,17,62,.96),rgba(12,22,46,.95));box-shadow:0 16px 50px rgba(0,0,0,.28)}
+.agenda-night .agenda-hero-copy{min-width:0;flex:1 1 340px}
+.agenda-night .agenda-eyebrow{margin:0 0 18px;font-size:12px;font-weight:800;line-height:1.6;letter-spacing:.2em;color:#9ee9ff}
+.agenda-night h1.agenda-title{margin:0 0 20px;font-size:clamp(30px,4.4vw,56px);line-height:1.17;letter-spacing:-.025em;overflow-wrap:break-word}
+.agenda-night .agenda-subtitle{margin:0;color:#d5d6e5;font-size:clamp(14px,1.5vw,17px);line-height:1.65;max-width:570px}
+.agenda-night .agenda-new-attraction{flex:0 0 auto;min-height:52px;justify-content:center;padding:12px 24px;white-space:nowrap}
+@media(max-width:640px){.agenda-night .agenda-hero{gap:24px;padding:24px 20px;border-radius:18px}.agenda-night .agenda-eyebrow{margin-bottom:14px;letter-spacing:.14em}.agenda-night h1.agenda-title{margin-bottom:15px;font-size:clamp(29px,8.7vw,42px)}.agenda-night .agenda-new-attraction{width:100%}}
+
+/* Animacoes suaves da Agenda, respeitando preferencias de acessibilidade */
+.agenda-night {background-size:155% 155%!important;animation:lotusAtmosphere 18s ease-in-out infinite alternate}
+.agenda-night::before {animation:lotusLights 14s ease-in-out infinite alternate;pointer-events:none}
+.agenda-night .agenda-hero {position:relative;overflow:hidden;animation:lotusHeroGlow 7s ease-in-out infinite alternate}
+.agenda-night .agenda-hero::after {content:"";position:absolute;inset:-90%;background:conic-gradient(from 0deg,transparent 0 70deg,rgba(193,97,255,.08) 85deg,transparent 105deg 230deg,rgba(69,222,255,.07) 250deg,transparent 275deg);animation:lotusSpotlight 25s linear infinite;pointer-events:none}
+.agenda-night .agenda-hero > * {position:relative;z-index:1}
+.agenda-night h1.agenda-title {animation:lotusTitlePulse 6s ease-in-out infinite alternate}
+@keyframes lotusAtmosphere {from{background-position:0% 0%}to{background-position:100% 100%}}
+@keyframes lotusLights {from{opacity:.55;transform:translate(-1%,0) scale(1)}to{opacity:.9;transform:translate(1%,1%) scale(1.02)}}
+@keyframes lotusHeroGlow {from{box-shadow:0 12px 35px rgba(124,58,237,.13)}to{box-shadow:0 16px 45px rgba(217,70,239,.22),0 0 20px rgba(34,211,238,.08)}}
+@keyframes lotusSpotlight {to{transform:rotate(360deg)}}
+@keyframes lotusTitlePulse {from{text-shadow:0 0 12px rgba(141,69,255,.24)}to{text-shadow:0 0 25px rgba(232,121,249,.46),0 0 35px rgba(34,211,238,.12)}}
+@media(prefers-reduced-motion:reduce){.agenda-night,.agenda-night::before,.agenda-night .agenda-hero,.agenda-night .agenda-hero::after,.agenda-night h1.agenda-title{animation:none!important}}
+
+/* Cantor com visual de palco, animado ao fundo da Agenda */
+.agenda-night{isolation:isolate}
+.agenda-night > :not(.dl-singer-stage){position:relative;z-index:1}
+.dl-singer-stage{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.dl-singer-figure{position:absolute;width:min(65vw,570px);height:auto;top:215px;left:50%;opacity:.43;filter:drop-shadow(0 0 25px rgba(81,153,255,.5));animation:dl-singer-sway 3s ease-in-out infinite alternate}
+.dl-singer-body{transform-origin:210px 350px;animation:dl-singer-body 2.2s ease-in-out infinite alternate}
+.dl-singer-mic-arm{transform-origin:280px 218px;animation:dl-singer-arm 1.5s ease-in-out infinite alternate}
+.dl-singer-beam{position:absolute;top:0;width:24%;height:720px;filter:blur(35px);opacity:.25;transform-origin:top center;animation:dl-singer-light 6s ease-in-out infinite alternate}
+.dl-singer-beam-one{left:20%;background:linear-gradient(#29caff,transparent)}
+.dl-singer-beam-two{right:20%;background:linear-gradient(#ae53fa,transparent);animation-direction:alternate-reverse}
+@keyframes dl-singer-sway{from{transform:translateX(-50%) rotate(-1deg)}to{transform:translateX(-50%) rotate(1deg)}}
+@keyframes dl-singer-body{to{transform:rotate(2deg)}}
+@keyframes dl-singer-arm{to{transform:rotate(-9deg)}}
+@keyframes dl-singer-light{to{transform:rotate(18deg)}}
+@media(max-width:700px){.dl-singer-figure{width:400px;top:320px;opacity:.25}}
+@media(prefers-reduced-motion:reduce){.dl-singer-figure,.dl-singer-body,.dl-singer-mic-arm,.dl-singer-beam{animation:none!important}}
+
+/* D'Lotus V6 — cabeçalhos com equalizador e navegação espaçada */
+.agenda-night .agenda-hero{position:relative;isolation:isolate;overflow:hidden}
+.agenda-night .agenda-hero::before{content:"";position:absolute;inset:-80% -20%;pointer-events:none;background:conic-gradient(from 30deg,transparent 0 55deg,rgba(37,196,255,.16) 75deg,transparent 100deg 190deg,rgba(193,67,255,.15) 210deg,transparent 245deg);animation:dl-head-sweep 13s linear infinite;z-index:0}
+.dl-show-header>* ,.agenda-night .agenda-hero>*{position:relative;z-index:1}
+.dl-header-eq{position:absolute!important;bottom:9px;left:50%;transform:translateX(-50%);height:24px;display:flex;align-items:end;gap:4px;opacity:.8;z-index:0!important;pointer-events:none}
+.dl-header-eq span{width:4px;height:25%;background:linear-gradient(#b777ff,#35d7ff);border-radius:4px;animation:dl-head-bars .6s ease-in-out infinite alternate}
+.dl-reservas-tabs{display:flex;flex-wrap:wrap;align-items:center;gap:12px 14px!important;margin:22px 0 24px;padding:8px 2px}
+.dl-reservas-tabs button{min-height:46px;flex:0 0 auto;white-space:normal;font-weight:600}
+.dl-dj-figure{left:50%!important;right:auto!important;top:190px!important;transform:translateX(-50%);width:min(72vw,660px)!important;opacity:.57!important;animation:dl-dj-center-bob 2.3s ease-in-out infinite!important}
+.dl-dj-equalizer{display:none}
+@keyframes dl-dj-center-bob{0%,100%{transform:translateX(-50%) translateY(0) rotate(-1deg)}50%{transform:translateX(-50%) translateY(-13px) rotate(1deg)}}
+@keyframes dl-head-bars{to{height:100%}}
+@keyframes dl-head-sweep{to{transform:rotate(360deg)}}
+@media(max-width:700px){.dl-dj-figure{width:390px!important;top:260px!important;opacity:.3!important}.dl-reservas-tabs{gap:10px!important}.dl-reservas-tabs button{flex:1 1 135px}}
+@media(prefers-reduced-motion:reduce){.dl-dj-figure,.dl-header-eq span,.dl-show-header::before{animation:none!important}}
+
+/* Agenda: o DJ substitui completamente o antigo cantor. */
+.agenda-night{position:relative;isolation:isolate}
+.agenda-night>.dl-agenda-dj-scene{position:relative;height:270px;inset:auto;overflow:hidden;border:1px solid rgba(67,194,255,.22);border-radius:22px;background:radial-gradient(ellipse at 50% 100%,rgba(92,58,193,.25),transparent 70%),#090f20}
+.agenda-night .dl-agenda-dj-scene .dl-dj-figure{top:0!important;width:min(75vw,450px)!important;opacity:.85!important}
+.agenda-night .dl-agenda-dj-scene .dl-dj-equalizer{display:flex;top:auto;bottom:14px}
+@media(max-width:700px){.agenda-night>.dl-agenda-dj-scene{height:210px}.agenda-night .dl-agenda-dj-scene .dl-dj-figure{width:360px!important}}
