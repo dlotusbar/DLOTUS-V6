@@ -1,0 +1,1962 @@
+[
+  {
+    "categoria": "REFRI",
+    "nome": "AGUA 510ML",
+    "compra": 0.85,
+    "venda": 5.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "REFRI",
+    "nome": "AGUA COM GAS 500 ML",
+    "compra": 2.0,
+    "venda": 7.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SEM CATEGORIA",
+    "nome": "AGUA FREE",
+    "compra": 0.85,
+    "venda": 0.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SEM CATEGORIA",
+    "nome": "AMSTEL DOUBLE",
+    "compra": 0.0,
+    "venda": 0.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "CERVEJA",
+    "nome": "AMSTEL LATA 269ML",
+    "compra": 2.4,
+    "venda": 7.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DOCE",
+    "nome": "BALA FREEGELS",
+    "compra": 2.0,
+    "venda": 5.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DOCE",
+    "nome": "BALA HALLS",
+    "compra": 1.14,
+    "venda": 5.0,
+    "local_entrega": "CAIXA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "BALDE",
+    "nome": "BALDE DE AMSTEL C/10 269ML",
+    "compra": 22.4,
+    "venda": 65.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "BALDE",
+    "nome": "BALDE DE BUDWEISER LONG NECK C/5",
+    "compra": 43.7,
+    "venda": 75.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "BALDE",
+    "nome": "BALDE DE CORONA LONG NECK C/5",
+    "compra": 56.2,
+    "venda": 75.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "BALDE",
+    "nome": "BALDE DE HEINEKEN 0 SEM ALCOOL",
+    "compra": 60.0,
+    "venda": 80.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "BALDE",
+    "nome": "BALDE DE HEINEKEN LONG NECK C/5",
+    "compra": 53.7,
+    "venda": 75.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "BALDE",
+    "nome": "BALDE DE ORIGINAL C /10 269ML",
+    "compra": 30.0,
+    "venda": 65.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "BALDE",
+    "nome": "BALDE DE SKOL C/10 269ML",
+    "compra": 23.6,
+    "venda": 65.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "BALDE",
+    "nome": "BALDE HEINEKEN LATA C/10 269ML",
+    "compra": 0.0,
+    "venda": 90.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SEM CATEGORIA",
+    "nome": "BATIDA MARACUJA",
+    "compra": 0.0,
+    "venda": 25.0,
+    "local_entrega": "",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SEM CATEGORIA",
+    "nome": "BATIDA MORAGO CHOCOLATE",
+    "compra": 0.0,
+    "venda": 35.0,
+    "local_entrega": "",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SEM CATEGORIA",
+    "nome": "BILHAR FIXA",
+    "compra": 1.0,
+    "venda": 4.0,
+    "local_entrega": "CAIXA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "CERVEJA",
+    "nome": "BUDWEISER LONG NECK",
+    "compra": 4.37,
+    "venda": 15.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DRINK",
+    "nome": "CAIPIRINHA DE ABACAXI PINGA 500ML",
+    "compra": 4.5,
+    "venda": 20.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DRINK",
+    "nome": "CAIPIRINHA DE ABACAXI VODKA 500ML",
+    "compra": 5.5,
+    "venda": 25.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DRINK",
+    "nome": "CAIPIRINHA DE KIWI PINGA 500ML",
+    "compra": 4.5,
+    "venda": 20.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DRINK",
+    "nome": "CAIPIRINHA DE KIWI VODKA 500ML",
+    "compra": 5.5,
+    "venda": 25.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DRINK",
+    "nome": "CAIPIRINHA DE LIMAO PINGA 500ML",
+    "compra": 4.5,
+    "venda": 20.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DRINK",
+    "nome": "CAIPIRINHA DE LIMAO VODKA 500ML",
+    "compra": 5.5,
+    "venda": 25.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DRINK",
+    "nome": "CAIPIRINHA DE MARACUJA PINGA 500ML",
+    "compra": 4.5,
+    "venda": 20.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DRINK",
+    "nome": "CAIPIRINHA DE MARACUJA VODKA 500ML",
+    "compra": 5.5,
+    "venda": 25.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DRINK",
+    "nome": "CAIPIRINHA DE MELANCIA PINGA 500ML",
+    "compra": 4.5,
+    "venda": 20.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DRINK",
+    "nome": "CAIPIRINHA DE MELANCIA VODKA 500ML",
+    "compra": 5.5,
+    "venda": 25.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DRINK",
+    "nome": "CAIPIRINHA DE MORANGO PINGA 500ML",
+    "compra": 4.5,
+    "venda": 20.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DRINK",
+    "nome": "CAIPIRINHA DE MORANGO VODKA 500ML",
+    "compra": 5.5,
+    "venda": 25.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DRINK",
+    "nome": "CAIPIRINHA PRONTA DOBLO",
+    "compra": 10.0,
+    "venda": 0.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DRINK",
+    "nome": "CAIPIRINHA SAQUE",
+    "compra": 10.0,
+    "venda": 30.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DOCE",
+    "nome": "CAIXA BIS",
+    "compra": 6.5,
+    "venda": 15.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DOSE",
+    "nome": "CAWBOY COM JACK E GELO COCO",
+    "compra": 15.0,
+    "venda": 35.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DOCE",
+    "nome": "CHETTOS",
+    "compra": 4.0,
+    "venda": 8.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DOCE",
+    "nome": "CHICLETE FREEGELS",
+    "compra": 1.85,
+    "venda": 5.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DOCE",
+    "nome": "CHICLETE PUSH",
+    "compra": 0.1,
+    "venda": 1.0,
+    "local_entrega": "CAIXA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "CIGARRO",
+    "nome": "CIGARRO CALTON",
+    "compra": 8.0,
+    "venda": 25.0,
+    "local_entrega": "CAIXA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "CIGARRO",
+    "nome": "CIGARRO CALTON OU MALBORO SOLTO",
+    "compra": 1.0,
+    "venda": 2.5,
+    "local_entrega": "CAIXA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "CIGARRO",
+    "nome": "CIGARRO HOTHMANS",
+    "compra": 6.7,
+    "venda": 20.0,
+    "local_entrega": "CAIXA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "CIGARRO",
+    "nome": "CIGARRO MALBORO",
+    "compra": 8.0,
+    "venda": 25.0,
+    "local_entrega": "CAIXA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "CIGARRO",
+    "nome": "CIGARRO SOLTO HOTHMANS",
+    "compra": 0.33,
+    "venda": 2.0,
+    "local_entrega": "CAIXA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COMBO",
+    "nome": "CIROC TRADICIONAL",
+    "compra": 150.0,
+    "venda": 380.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "REFRI",
+    "nome": "COCA COLA 2LITRO",
+    "compra": 8.66,
+    "venda": 25.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "REFRI",
+    "nome": "COCA COLA LATA 350ML",
+    "compra": 3.25,
+    "venda": 7.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COMBO",
+    "nome": "COMBO DE BLUE LABEL",
+    "compra": 500.0,
+    "venda": 1500.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COMBO",
+    "nome": "COMBO ANIVERSARIANTE GIN",
+    "compra": 0.0,
+    "venda": 0.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COMBO",
+    "nome": "COMBO CIROC FRUTAS VERMELHA",
+    "compra": 200.0,
+    "venda": 400.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COMBO",
+    "nome": "COMBO CIROK C/SUCO",
+    "compra": 200.0,
+    "venda": 350.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COMBO",
+    "nome": "COMBO DE ABSOLUT",
+    "compra": 0.0,
+    "venda": 300.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "REFRI",
+    "nome": "COMBO DE AGUA C10",
+    "compra": 0.0,
+    "venda": 50.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COMBO",
+    "nome": "COMBO DE BALLANTAINES",
+    "compra": 98.6,
+    "venda": 250.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COMBO",
+    "nome": "COMBO DE BALLENA",
+    "compra": 119.0,
+    "venda": 250.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COMBO",
+    "nome": "COMBO DE BEFEATER PINK",
+    "compra": 121.98,
+    "venda": 320.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COMBO",
+    "nome": "COMBO DE BEFEATER TRADICIONAL",
+    "compra": 111.98,
+    "venda": 300.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COMBO",
+    "nome": "COMBO DE BLACK",
+    "compra": 150.6,
+    "venda": 420.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COMBO",
+    "nome": "COMBO DE CAVALO BRANCO",
+    "compra": 97.6,
+    "venda": 260.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COMBO",
+    "nome": "COMBO DE CHIVAS 12 ANOS",
+    "compra": 140.0,
+    "venda": 400.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COMBO",
+    "nome": "COMBO DE GIN GORDON TRADICIONAL",
+    "compra": 100.88,
+    "venda": 300.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COMBO",
+    "nome": "COMBO DE GIN ROCK'S",
+    "compra": 42.0,
+    "venda": 200.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COMBO",
+    "nome": "COMBO DE GOLD LAYBEL",
+    "compra": 217.6,
+    "venda": 550.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COMBO",
+    "nome": "COMBO DE GORDON PINK",
+    "compra": 107.88,
+    "venda": 300.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COMBO",
+    "nome": "COMBO DE INVICTUS",
+    "compra": 75.0,
+    "venda": 200.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COMBO",
+    "nome": "COMBO DE JACK BLACKBERRY",
+    "compra": 180.0,
+    "venda": 400.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COMBO",
+    "nome": "COMBO DE JACK DANIELS",
+    "compra": 135.6,
+    "venda": 400.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COMBO",
+    "nome": "COMBO DE JACK FIRE",
+    "compra": 157.6,
+    "venda": 400.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COMBO",
+    "nome": "COMBO DE JACK MACA",
+    "compra": 157.6,
+    "venda": 400.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COMBO",
+    "nome": "COMBO DE LICOR 43",
+    "compra": 98.0,
+    "venda": 250.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COMBO",
+    "nome": "COMBO DE LICOR 43 CHOCOLATE",
+    "compra": 125.0,
+    "venda": 300.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COMBO",
+    "nome": "COMBO DE LICOR 43 CREME BRULEE",
+    "compra": 135.0,
+    "venda": 250.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COMBO",
+    "nome": "COMBO DE OLD PAR",
+    "compra": 230.0,
+    "venda": 400.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COMBO",
+    "nome": "COMBO DE RED LABEL",
+    "compra": 107.6,
+    "venda": 285.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COMBO",
+    "nome": "COMBO DE TANQUERAY TRAD",
+    "compra": 95.0,
+    "venda": 350.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COMBO",
+    "nome": "COMBO DE TEQUILA C/LIMAO E SAL",
+    "compra": 110.0,
+    "venda": 220.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COMBO",
+    "nome": "COMBO ROYAL SALUTE",
+    "compra": 850.0,
+    "venda": 1200.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COMBO",
+    "nome": "COMBO TANQUERAY ROYALE",
+    "compra": 200.0,
+    "venda": 450.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COPÃO",
+    "nome": "COPAO DE BEFEATER PINK",
+    "compra": 30.55,
+    "venda": 60.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COPÃO",
+    "nome": "COPAO DE BLACK LAYBEL",
+    "compra": 25.15,
+    "venda": 65.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COPÃO",
+    "nome": "COPAO DE JACK DANIELS",
+    "compra": 22.98,
+    "venda": 55.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COPÃO",
+    "nome": "COPAO DE JACK DE MACA",
+    "compra": 26.15,
+    "venda": 60.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COPÃO",
+    "nome": "COPAO DE ABSOLUT",
+    "compra": 0.0,
+    "venda": 50.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COPÃO",
+    "nome": "COPAO DE BALLANTANIES",
+    "compra": 17.72,
+    "venda": 40.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COPÃO",
+    "nome": "COPAO DE BEFEATER TRADICIONAL",
+    "compra": 21.46,
+    "venda": 55.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COPÃO",
+    "nome": "COPAO DE BUCANAS",
+    "compra": 27.65,
+    "venda": 60.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COPÃO",
+    "nome": "COPAO DE CAVALO C/ RED BULL",
+    "compra": 17.24,
+    "venda": 40.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SEM CATEGORIA",
+    "nome": "COPAO DE CAVALO CORTESIA C/ VIBE",
+    "compra": 11.0,
+    "venda": 0.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DOSE",
+    "nome": "COPAO DE CIROC TRADICIONAL",
+    "compra": 30.0,
+    "venda": 80.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SEM CATEGORIA",
+    "nome": "COPAO DE GIN MACA VERDE",
+    "compra": 0.0,
+    "venda": 30.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COPÃO",
+    "nome": "COPAO DE GIN MELANCIA",
+    "compra": 5.5,
+    "venda": 30.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COPÃO",
+    "nome": "COPAO DE GIN ROCK'S",
+    "compra": 6.66,
+    "venda": 40.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COPÃO",
+    "nome": "COPAO DE GIN TROPICAL",
+    "compra": 4.77,
+    "venda": 30.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COPÃO",
+    "nome": "COPAO DE GOLD LABEL",
+    "compra": 34.72,
+    "venda": 70.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COPÃO",
+    "nome": "COPAO DE GORDON PINK",
+    "compra": 27.05,
+    "venda": 50.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COPÃO",
+    "nome": "COPAO DE GORDON TRADICIONAL",
+    "compra": 19.13,
+    "venda": 45.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SEM CATEGORIA",
+    "nome": "COPAO DE JACK CORTESIA C/RED BULL",
+    "compra": 22.98,
+    "venda": 0.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COPÃO",
+    "nome": "COPAO DE JACK FIRE",
+    "compra": 27.0,
+    "venda": 60.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COPÃO",
+    "nome": "COPAO DE RED LABEL",
+    "compra": 19.01,
+    "venda": 45.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DOSE",
+    "nome": "COPAO DE SMINORFF C RED",
+    "compra": 25.0,
+    "venda": 40.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COPÃO",
+    "nome": "COPAO GIN DOUBLE",
+    "compra": 5.0,
+    "venda": 0.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COPÃO",
+    "nome": "COPAO GIN TANQUERAY",
+    "compra": 20.0,
+    "venda": 55.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COPÃO",
+    "nome": "COPAO JACK BLACKBERRY",
+    "compra": 30.0,
+    "venda": 60.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "REFRI",
+    "nome": "COPO DE ENERGETICO MELANCIA COM GELO",
+    "compra": 0.0,
+    "venda": 0.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "CERVEJA",
+    "nome": "CORONA LONG NECK",
+    "compra": 5.62,
+    "venda": 15.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "PORÇÃO",
+    "nome": "COXINHA",
+    "compra": 0.0,
+    "venda": 6.0,
+    "local_entrega": "COZINHA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "PORÇÃO",
+    "nome": "DOG",
+    "compra": 5.0,
+    "venda": 10.0,
+    "local_entrega": "COZINHA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SEM CATEGORIA",
+    "nome": "DORITOS",
+    "compra": 4.0,
+    "venda": 8.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DOSE",
+    "nome": "DOSE DE BALENA",
+    "compra": 9.15,
+    "venda": 20.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DOSE",
+    "nome": "DOSE DE LICOR 43 CHOCOLATE",
+    "compra": 9.61,
+    "venda": 25.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DOSE",
+    "nome": "DOSE DE LICOR 43 CREME BRULEE",
+    "compra": 10.38,
+    "venda": 20.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DOSE",
+    "nome": "DOSE DE LICOR 43 TRADICIONAL",
+    "compra": 7.53,
+    "venda": 25.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DOSE",
+    "nome": "DOSE DE TEQUILA",
+    "compra": 5.0,
+    "venda": 20.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "PORÇÃO",
+    "nome": "D'LOTUS SMASH ARTESANAL",
+    "compra": 12.0,
+    "venda": 30.0,
+    "local_entrega": "COZINHA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DOCE",
+    "nome": "EBICEN",
+    "compra": 2.9,
+    "venda": 5.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "REFRI",
+    "nome": "ENERGETICO BALLY 2 L",
+    "compra": 0.0,
+    "venda": 20.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "REFRI",
+    "nome": "ENERGETICO MONSTER",
+    "compra": 10.0,
+    "venda": 20.0,
+    "local_entrega": "CAIXA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "PORÇÃO",
+    "nome": "ESPETO CARNE",
+    "compra": 2.5,
+    "venda": 8.0,
+    "local_entrega": "COZINHA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "PORÇÃO",
+    "nome": "ESPETO DE CAFTA",
+    "compra": 2.5,
+    "venda": 8.0,
+    "local_entrega": "COZINHA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "PORÇÃO",
+    "nome": "ESPETO FRANGO",
+    "compra": 2.5,
+    "venda": 8.0,
+    "local_entrega": "COZINHA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "PORÇÃO",
+    "nome": "ESPETO LINGUICA",
+    "compra": 2.5,
+    "venda": 8.0,
+    "local_entrega": "COZINHA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COMBO",
+    "nome": "ESTALINHO",
+    "compra": 12.0,
+    "venda": 30.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DOCE",
+    "nome": "FANDANGOS",
+    "compra": 4.0,
+    "venda": 8.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "REFRI",
+    "nome": "FANTA LARANJA LATA 350ML",
+    "compra": 3.15,
+    "venda": 7.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "REFRI",
+    "nome": "FANTA UVA LATA 350ML",
+    "compra": 3.15,
+    "venda": 7.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DOCE",
+    "nome": "FOFURA",
+    "compra": 1.9,
+    "venda": 5.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "BATIDAS",
+    "nome": "FROZEN",
+    "compra": 0.0,
+    "venda": 25.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "GARRAFA",
+    "nome": "GARRAFA DE BEFEATER PINK",
+    "compra": 0.0,
+    "venda": 0.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "GARRAFA",
+    "nome": "GARRAFA DE BEFEATER TRADICIONAL",
+    "compra": 0.0,
+    "venda": 0.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "GARRAFA",
+    "nome": "GARRAFA DE BLACK LABEL",
+    "compra": 0.0,
+    "venda": 0.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "GARRAFA",
+    "nome": "GARRAFA DE BALLANTANIES",
+    "compra": 0.0,
+    "venda": 0.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "GARRAFA",
+    "nome": "GARRAFA DE BUCANAS",
+    "compra": 0.0,
+    "venda": 0.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "GARRAFA",
+    "nome": "GARRAFA DE CAVALO BRANCO",
+    "compra": 0.0,
+    "venda": 0.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "GARRAFA",
+    "nome": "GARRAFA DE CHANDON",
+    "compra": 84.0,
+    "venda": 180.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "GARRAFA",
+    "nome": "GARRAFA DE CHIVAS 12 ANOS",
+    "compra": 0.0,
+    "venda": 0.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "GARRAFA",
+    "nome": "GARRAFA DE GIN GORDON PINK",
+    "compra": 0.0,
+    "venda": 0.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "GARRAFA",
+    "nome": "GARRAFA DE GIN GORDON TRADICIONAL",
+    "compra": 0.0,
+    "venda": 0.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "GARRAFA",
+    "nome": "GARRAFA DE GOLD LABEL",
+    "compra": 0.0,
+    "venda": 350.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "GARRAFA",
+    "nome": "GARRAFA DE RED LABEL",
+    "compra": 0.0,
+    "venda": 0.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "GARRAFA",
+    "nome": "GARRAFA DE VELHO BARREIRO",
+    "compra": 0.0,
+    "venda": 0.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "GARRAFA",
+    "nome": "GARRAFA VINHO PERGOLA",
+    "compra": 17.08,
+    "venda": 35.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "GELO",
+    "nome": "GELO DE MELANCIA",
+    "compra": 1.0,
+    "venda": 8.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "GELO",
+    "nome": "GELO DE COCO",
+    "compra": 1.0,
+    "venda": 8.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COPÃO",
+    "nome": "GIN DE 10,00",
+    "compra": 5.0,
+    "venda": 10.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COPÃO",
+    "nome": "GIN PRA ELAS",
+    "compra": 4.41,
+    "venda": 0.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "REFRI",
+    "nome": "GUARANA ANTATICA LATA 350ML",
+    "compra": 3.15,
+    "venda": 7.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "CERVEJA",
+    "nome": "HEINEKEN 0 SEM ALCOOL",
+    "compra": 7.5,
+    "venda": 15.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "CERVEJA",
+    "nome": "HEINEKEN LATA 269",
+    "compra": 0.0,
+    "venda": 6.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SEM CATEGORIA",
+    "nome": "HEINEKEN LATA 269ML",
+    "compra": 0.0,
+    "venda": 9.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "CERVEJA",
+    "nome": "HEINEKEN LONG NECK",
+    "compra": 5.37,
+    "venda": 15.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DOCE",
+    "nome": "MORANGUETE",
+    "compra": 1.5,
+    "venda": 2.5,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "ESSENCIA",
+    "nome": "NARGUILE ADICIONAL OPEN",
+    "compra": 0.0,
+    "venda": 30.0,
+    "local_entrega": "ROSH",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "ESSENCIA",
+    "nome": "OPEN MORANGO E LARANJA",
+    "compra": 0.0,
+    "venda": 0.0,
+    "local_entrega": "ROSH",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "ESSENCIA",
+    "nome": "OPEN STRONG MINT",
+    "compra": 0.0,
+    "venda": 0.0,
+    "local_entrega": "ROSH",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "CERVEJA",
+    "nome": "ORIGINAL LATA 269ML",
+    "compra": 2.86,
+    "venda": 7.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DOCE",
+    "nome": "PACOCA",
+    "compra": 0.5,
+    "venda": 1.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SEM CATEGORIA",
+    "nome": "PERDA OU QUEBRA VASO",
+    "compra": 0.0,
+    "venda": 60.0,
+    "local_entrega": "",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SEM CATEGORIA",
+    "nome": "PERDA OU QUEBRAS PITEIRA",
+    "compra": 0.0,
+    "venda": 40.0,
+    "local_entrega": "",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SEM CATEGORIA",
+    "nome": "PERDA OU QUEBRAS ROSH",
+    "compra": 0.0,
+    "venda": 20.0,
+    "local_entrega": "",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SEM CATEGORIA",
+    "nome": "PERDAS OU QUEBRAS PECAS DO NARGUILE",
+    "compra": 0.0,
+    "venda": 100.0,
+    "local_entrega": "",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SEM CATEGORIA",
+    "nome": "PERDAS OU QUEBRAS PEGADOR",
+    "compra": 0.0,
+    "venda": 20.0,
+    "local_entrega": "",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DOCE",
+    "nome": "PIRULITO",
+    "compra": 1.0,
+    "venda": 2.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "PORÇÃO",
+    "nome": "PORCAO DE BATATA COM CHEDDAR E BACON",
+    "compra": 15.0,
+    "venda": 40.0,
+    "local_entrega": "",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "PORÇÃO",
+    "nome": "PORCAO DE BATATA FRITA SIMPLES",
+    "compra": 10.0,
+    "venda": 30.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "PORÇÃO",
+    "nome": "PORCAO DE CALABRESA",
+    "compra": 13.0,
+    "venda": 40.0,
+    "local_entrega": "COZINHA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SEM CATEGORIA",
+    "nome": "PORCAO DE FRUTAS",
+    "compra": 0.0,
+    "venda": 25.0,
+    "local_entrega": "COZINHA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "PORÇÃO",
+    "nome": "PORCAO MEIO A MEIO",
+    "compra": 13.0,
+    "venda": 45.0,
+    "local_entrega": "COZINHA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "PORÇÃO",
+    "nome": "PORCAO ONION RINGS 10 UNID",
+    "compra": 5.0,
+    "venda": 15.0,
+    "local_entrega": "COZINHA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "PORTARIA",
+    "nome": "PULSEIRA CORTESIA",
+    "compra": 0.23,
+    "venda": 0.0,
+    "local_entrega": "CAIXA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "PORTARIA",
+    "nome": "PULSEIRA FEMININO",
+    "compra": 0.23,
+    "venda": 15.0,
+    "local_entrega": "CAIXA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "PORTARIA",
+    "nome": "PULSEIRA FEMININO",
+    "compra": 0.23,
+    "venda": 0.0,
+    "local_entrega": "CAIXA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "PORTARIA",
+    "nome": "PULSEIRA FEMININO",
+    "compra": 0.23,
+    "venda": 20.0,
+    "local_entrega": "CAIXA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "PORTARIA",
+    "nome": "PULSEIRA FEMININO",
+    "compra": 0.23,
+    "venda": 10.0,
+    "local_entrega": "CAIXA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "PORTARIA",
+    "nome": "PULSEIRA MASCULINA",
+    "compra": 0.23,
+    "venda": 30.0,
+    "local_entrega": "CAIXA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "PORTARIA",
+    "nome": "PULSEIRA MASCULINA",
+    "compra": 0.23,
+    "venda": 20.0,
+    "local_entrega": "CAIXA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "PORTARIA",
+    "nome": "PULSEIRA MASCULINA",
+    "compra": 0.23,
+    "venda": 10.0,
+    "local_entrega": "CAIXA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "PORTARIA",
+    "nome": "PULSEIRA MASCULINA",
+    "compra": 0.23,
+    "venda": 40.0,
+    "local_entrega": "CAIXA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "PORTARIA",
+    "nome": "PULSEIRA VIP",
+    "compra": 0.23,
+    "venda": 10.0,
+    "local_entrega": "CAIXA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "PORTARIA",
+    "nome": "PULSEIRA VIP",
+    "compra": 0.23,
+    "venda": 5.0,
+    "local_entrega": "CAIXA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "REFRI",
+    "nome": "RED BULL MELANCIA",
+    "compra": 6.87,
+    "venda": 18.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "REFRI",
+    "nome": "RED BULL TRADICIONAL",
+    "compra": 6.87,
+    "venda": 18.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "REFRI",
+    "nome": "RED BULL TROPICAL",
+    "compra": 6.87,
+    "venda": 18.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "CORTESIA",
+    "nome": "RESERVA DESISTENCIA",
+    "compra": 0.01,
+    "venda": 30.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SEM CATEGORIA",
+    "nome": "ROSH DA CASA CORTESIA",
+    "compra": 2.5,
+    "venda": 0.0,
+    "local_entrega": "ROSH",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "ESSENCIA",
+    "nome": "ROSH DOBRO FRUTAS ROXA",
+    "compra": 2.5,
+    "venda": 0.0,
+    "local_entrega": "ROSH",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "ESSENCIA",
+    "nome": "ROSH DOBRO LOVE 66",
+    "compra": 3.0,
+    "venda": 0.0,
+    "local_entrega": "ROSH",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "ESSENCIA",
+    "nome": "ROSH DOBRO ZIGG 2 GOIABA",
+    "compra": 2.5,
+    "venda": 0.0,
+    "local_entrega": "ROSH",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "ESSENCIA",
+    "nome": "ROSH DOBRO ZIGG 7BELO",
+    "compra": 2.5,
+    "venda": 0.0,
+    "local_entrega": "ROSH",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "ESSENCIA",
+    "nome": "ROSH DOBRO ZIGG BANANA",
+    "compra": 2.5,
+    "venda": 0.0,
+    "local_entrega": "ROSH",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "ESSENCIA",
+    "nome": "ROSH DOBRO ZIGG CEREJA",
+    "compra": 2.5,
+    "venda": 0.0,
+    "local_entrega": "ROSH",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "ESSENCIA",
+    "nome": "ROSH DOBRO ZIGG FRUTAS ROXA",
+    "compra": 2.5,
+    "venda": 0.0,
+    "local_entrega": "ROSH",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "ESSENCIA",
+    "nome": "ROSH DOBRO ZIGG LIMAO",
+    "compra": 2.5,
+    "venda": 0.0,
+    "local_entrega": "ROSH",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "ESSENCIA",
+    "nome": "ROSH DOBRO ZIGG MELANCIA",
+    "compra": 2.5,
+    "venda": 0.0,
+    "local_entrega": "ROSH",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "ESSENCIA",
+    "nome": "ROSH DOBRO ZIGG TUTI FRUTY",
+    "compra": 2.5,
+    "venda": 0.0,
+    "local_entrega": "ROSH",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "ESSENCIA",
+    "nome": "ROSH DOBRO ZIGG UVA",
+    "compra": 2.5,
+    "venda": 0.0,
+    "local_entrega": "ROSH",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "ESSENCIA",
+    "nome": "ROSH DOBRO ZOMO STRONG MINT",
+    "compra": 0.0,
+    "venda": 0.0,
+    "local_entrega": "ROSH",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "ESSENCIA",
+    "nome": "ROSH FRUTAS AMARELAS",
+    "compra": 0.0,
+    "venda": 20.0,
+    "local_entrega": "ROSH",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "ESSENCIA",
+    "nome": "ROSH LOVE 66",
+    "compra": 3.0,
+    "venda": 25.0,
+    "local_entrega": "ROSH",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "ESSENCIA",
+    "nome": "ROSH MORANGO COM LARANJA",
+    "compra": 0.0,
+    "venda": 20.0,
+    "local_entrega": "ROSH",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "ESSENCIA",
+    "nome": "ROSH QUE QUEBROU",
+    "compra": 5.5,
+    "venda": 20.0,
+    "local_entrega": "CAIXA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "ESSENCIA",
+    "nome": "ROSH ZIGG 2 GOIABA",
+    "compra": 2.5,
+    "venda": 20.0,
+    "local_entrega": "ROSH",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "ESSENCIA",
+    "nome": "ROSH ZIGG 7BELO",
+    "compra": 2.5,
+    "venda": 20.0,
+    "local_entrega": "ROSH",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "ESSENCIA",
+    "nome": "ROSH ZIGG BANANA",
+    "compra": 2.5,
+    "venda": 20.0,
+    "local_entrega": "ROSH",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "ESSENCIA",
+    "nome": "ROSH ZIGG CEREJA",
+    "compra": 2.5,
+    "venda": 20.0,
+    "local_entrega": "ROSH",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "ESSENCIA",
+    "nome": "ROSH ZIGG FRUTAS ROXA",
+    "compra": 2.5,
+    "venda": 20.0,
+    "local_entrega": "ROSH",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "ESSENCIA",
+    "nome": "ROSH ZIGG LIMAO",
+    "compra": 2.5,
+    "venda": 20.0,
+    "local_entrega": "ROSH",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "ESSENCIA",
+    "nome": "ROSH ZIGG MELANCIA",
+    "compra": 2.5,
+    "venda": 20.0,
+    "local_entrega": "ROSH",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "ESSENCIA",
+    "nome": "ROSH ZIGG TUTI FRUTI",
+    "compra": 2.5,
+    "venda": 20.0,
+    "local_entrega": "ROSH",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "ESSENCIA",
+    "nome": "ROSH ZIGG UVA",
+    "compra": 2.5,
+    "venda": 20.0,
+    "local_entrega": "ROSH",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "ESSENCIA",
+    "nome": "ROSH ZOMO STRONG MINT",
+    "compra": 2.5,
+    "venda": 20.0,
+    "local_entrega": "ROSH",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DOCE",
+    "nome": "SALDINHO DE BATATA",
+    "compra": 2.85,
+    "venda": 7.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DRINK",
+    "nome": "SANGUE DO JOB",
+    "compra": 10.0,
+    "venda": 20.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COMBO",
+    "nome": "SHERIDANTS COFFE",
+    "compra": 0.0,
+    "venda": 220.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SEM CATEGORIA",
+    "nome": "Sistema Eficiente - Compra de Licença",
+    "compra": 0.0,
+    "venda": 0.0,
+    "local_entrega": "",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SEM CATEGORIA",
+    "nome": "Sistema Eficiente - Compra de Licença",
+    "compra": 0.0,
+    "venda": 0.0,
+    "local_entrega": "",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SEM CATEGORIA",
+    "nome": "Sistema Eficiente - Compra de Licença",
+    "compra": 0.0,
+    "venda": 0.0,
+    "local_entrega": "",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SEM CATEGORIA",
+    "nome": "Sistema Eficiente - Compra de Licença",
+    "compra": 0.0,
+    "venda": 0.0,
+    "local_entrega": "",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SEM CATEGORIA",
+    "nome": "Sistema Eficiente - Compra de Licença",
+    "compra": 0.0,
+    "venda": 0.0,
+    "local_entrega": "",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SEM CATEGORIA",
+    "nome": "Sistema Eficiente - Compra de Licença",
+    "compra": 0.0,
+    "venda": 0.0,
+    "local_entrega": "",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SEM CATEGORIA",
+    "nome": "Sistema Eficiente - Compra de Licença",
+    "compra": 0.0,
+    "venda": 0.0,
+    "local_entrega": "",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SEM CATEGORIA",
+    "nome": "Sistema Eficiente - Compra de Licença",
+    "compra": 0.0,
+    "venda": 0.0,
+    "local_entrega": "",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SEM CATEGORIA",
+    "nome": "Sistema Eficiente - Compra de Licença",
+    "compra": 0.0,
+    "venda": 0.0,
+    "local_entrega": "",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SEM CATEGORIA",
+    "nome": "Sistema Eficiente - Compra de Licença",
+    "compra": 0.0,
+    "venda": 0.0,
+    "local_entrega": "",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SEM CATEGORIA",
+    "nome": "Sistema Eficiente - Compra de Licença",
+    "compra": 0.0,
+    "venda": 0.0,
+    "local_entrega": "",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SEM CATEGORIA",
+    "nome": "Sistema Eficiente - Upgrade de Licença",
+    "compra": 0.0,
+    "venda": 0.0,
+    "local_entrega": "",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "CERVEJA",
+    "nome": "SKOL BEATS LONG NECK",
+    "compra": 0.0,
+    "venda": 15.0,
+    "local_entrega": "",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SEM CATEGORIA",
+    "nome": "SKOL GT",
+    "compra": 0.0,
+    "venda": 15.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "CERVEJA",
+    "nome": "SKOL BEATS",
+    "compra": 0.0,
+    "venda": 15.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "CERVEJA",
+    "nome": "SKOL BEATS GT LONG NECK",
+    "compra": 0.0,
+    "venda": 15.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "CERVEJA",
+    "nome": "SKOL BEATS LONG NECK C/5",
+    "compra": 5.2,
+    "venda": 75.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "CERVEJA",
+    "nome": "SKOL LATA 269 ML",
+    "compra": 2.36,
+    "venda": 6.5,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "CERVEJA",
+    "nome": "SMIRNOFF ICE LONG NECK",
+    "compra": 5.62,
+    "venda": 15.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SEM CATEGORIA",
+    "nome": "STELLA LONG BALDE",
+    "compra": 0.0,
+    "venda": 60.0,
+    "local_entrega": "",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SEM CATEGORIA",
+    "nome": "STELLA UND",
+    "compra": 0.0,
+    "venda": 12.0,
+    "local_entrega": "",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SEM CATEGORIA",
+    "nome": "SUCO 1L",
+    "compra": 0.0,
+    "venda": 30.0,
+    "local_entrega": "",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SUCO",
+    "nome": "SUCO NATURAL LARANJA 500ML",
+    "compra": 5.0,
+    "venda": 20.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SUCO",
+    "nome": "SUCO NATURAL LIMAO 500ML",
+    "compra": 4.0,
+    "venda": 20.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SUCO",
+    "nome": "SUCO NATURAL MARAUJA 500ML",
+    "compra": 5.0,
+    "venda": 20.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "SUCO",
+    "nome": "SUCO NATURAL MELANCIA 500ML",
+    "compra": 5.0,
+    "venda": 20.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "DOCE",
+    "nome": "TORCIDA",
+    "compra": 1.89,
+    "venda": 5.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "ESSENCIA",
+    "nome": "VASO GRANDE",
+    "compra": 35.0,
+    "venda": 50.0,
+    "local_entrega": "CAIXA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "ESSENCIA",
+    "nome": "VASO PEQUENO",
+    "compra": 10.0,
+    "venda": 25.0,
+    "local_entrega": "CAIXA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "COMBO",
+    "nome": "VELA DE COMBO",
+    "compra": 2.9,
+    "venda": 10.0,
+    "local_entrega": "CAIXA",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "PORÇÃO",
+    "nome": "X-BACON ARTESANAL",
+    "compra": 15.0,
+    "venda": 25.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "PORÇÃO",
+    "nome": "X-EGG ARTESANAL",
+    "compra": 15.0,
+    "venda": 30.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  },
+  {
+    "categoria": "PORÇÃO",
+    "nome": "X-SALADA ARTESANAL",
+    "compra": 10.0,
+    "venda": 20.0,
+    "local_entrega": "BAR",
+    "unidade": "UNID"
+  }
+]

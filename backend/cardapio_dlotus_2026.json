@@ -1,0 +1,342 @@
+[
+  {
+    "categoria": "Combos Whisky",
+    "nome": "Combo Ballantines 2",
+    "preco": 260.0
+  },
+  {
+    "categoria": "Combos Whisky",
+    "nome": "Combo Cavalo Branco",
+    "preco": 260.0
+  },
+  {
+    "categoria": "Combos Whisky",
+    "nome": "Combo Red Label",
+    "preco": 285.0
+  },
+  {
+    "categoria": "Combos Whisky",
+    "nome": "Combo Jack Daniels",
+    "preco": 400.0
+  },
+  {
+    "categoria": "Combos Whisky",
+    "nome": "Combo Jack Maçã",
+    "preco": 400.0
+  },
+  {
+    "categoria": "Combos Whisky",
+    "nome": "Combo Jack Fire",
+    "preco": 400.0
+  },
+  {
+    "categoria": "Combos Whisky",
+    "nome": "Combo Jack Blackberry",
+    "preco": 450.0
+  },
+  {
+    "categoria": "Combos Whisky",
+    "nome": "Combo Chivas",
+    "preco": 400.0
+  },
+  {
+    "categoria": "Combos Whisky",
+    "nome": "Combo Old Par",
+    "preco": 400.0
+  },
+  {
+    "categoria": "Combos Whisky",
+    "nome": "Combo Black Label",
+    "preco": 430.0
+  },
+  {
+    "categoria": "Combos Whisky",
+    "nome": "Combo Gold Label",
+    "preco": 550.0
+  },
+  {
+    "categoria": "Combos Whisky",
+    "nome": "Combo Royal Salute",
+    "preco": 1200.0
+  },
+  {
+    "categoria": "Combos Whisky",
+    "nome": "Combo Blue Label",
+    "preco": 1500.0
+  },
+  {
+    "categoria": "Combos Vodka",
+    "nome": "Combo Absolut",
+    "preco": 300.0
+  },
+  {
+    "categoria": "Combos Vodka",
+    "nome": "Combo Ciroc Trad.",
+    "preco": 380.0
+  },
+  {
+    "categoria": "Combos Vodka",
+    "nome": "Ciroc Frutas Vermelhas",
+    "preco": 400.0
+  },
+  {
+    "categoria": "Combos Gin",
+    "nome": "Combo Beefeater Trad.",
+    "preco": 300.0
+  },
+  {
+    "categoria": "Combos Gin",
+    "nome": "Combo Beefeater Pink",
+    "preco": 320.0
+  },
+  {
+    "categoria": "Combos Gin",
+    "nome": "Combo Tanqueray",
+    "preco": 350.0
+  },
+  {
+    "categoria": "Combos Gin",
+    "nome": "Combo Gordon’s Trad.",
+    "preco": 300.0
+  },
+  {
+    "categoria": "Combos Gin",
+    "nome": "Combo Gordon’s Pink",
+    "preco": 320.0
+  },
+  {
+    "categoria": "Combos Energético",
+    "nome": "Combo Invictus 2L",
+    "preco": 200.0
+  },
+  {
+    "categoria": "Combos Energético",
+    "nome": "Combo Rocks 2L",
+    "preco": 220.0
+  },
+  {
+    "categoria": "Combos Licor",
+    "nome": "Combo Licor 43",
+    "preco": 250.0
+  },
+  {
+    "categoria": "Combos Licor",
+    "nome": "Combo Licor Chocolate",
+    "preco": 300.0
+  },
+  {
+    "categoria": "Combos Licor",
+    "nome": "Combo Sheridants Coffe",
+    "preco": 220.0
+  },
+  {
+    "categoria": "Baldes Long Neck",
+    "nome": "Balde Budweiser (5 un)",
+    "preco": 75.0
+  },
+  {
+    "categoria": "Baldes Long Neck",
+    "nome": "Balde Corona (5 un)",
+    "preco": 75.0
+  },
+  {
+    "categoria": "Baldes Long Neck",
+    "nome": "Balde Heineken (5 un)",
+    "preco": 75.0
+  },
+  {
+    "categoria": "Baldes Long Neck",
+    "nome": "Balde Heineken 0.0 (5 un)",
+    "preco": 80.0
+  },
+  {
+    "categoria": "Baldes Long Neck",
+    "nome": "Balde Skol Beats (5 un)",
+    "preco": 75.0
+  },
+  {
+    "categoria": "Baldes Long Neck",
+    "nome": "Balde Ice (5 un)",
+    "preco": 75.0
+  },
+  {
+    "categoria": "Baldes Lata",
+    "nome": "Balde Skol (10 un)",
+    "preco": 65.0
+  },
+  {
+    "categoria": "Baldes Lata",
+    "nome": "Balde Amstel (10 un)",
+    "preco": 65.0
+  },
+  {
+    "categoria": "Baldes Lata",
+    "nome": "Balde Original (10 un)",
+    "preco": 65.0
+  },
+  {
+    "categoria": "Baldes Lata",
+    "nome": "Balde Heineken (10 un)",
+    "preco": 90.0
+  },
+  {
+    "categoria": "Copão Gin",
+    "nome": "Gin Tradicional",
+    "preco": 30.0
+  },
+  {
+    "categoria": "Copão Gin",
+    "nome": "Gin Rocks",
+    "preco": 40.0
+  },
+  {
+    "categoria": "Copão Gin",
+    "nome": "Gin Tanqueray",
+    "preco": 60.0
+  },
+  {
+    "categoria": "Copão Gin",
+    "nome": "Gin Beefeater Trad.",
+    "preco": 55.0
+  },
+  {
+    "categoria": "Copão Gin",
+    "nome": "Gin Beefeater Pink",
+    "preco": 60.0
+  },
+  {
+    "categoria": "Copão Whisky",
+    "nome": "Copão Cavalo",
+    "preco": 40.0
+  },
+  {
+    "categoria": "Copão Whisky",
+    "nome": "Copão Ballantines",
+    "preco": 40.0
+  },
+  {
+    "categoria": "Copão Whisky",
+    "nome": "Copão Red Label",
+    "preco": 45.0
+  },
+  {
+    "categoria": "Copão Whisky",
+    "nome": "Copão Jack Daniels",
+    "preco": 55.0
+  },
+  {
+    "categoria": "Copão Whisky",
+    "nome": "Copão Jack Sabores",
+    "preco": 60.0
+  },
+  {
+    "categoria": "Copão Whisky",
+    "nome": "Copão Bucanas",
+    "preco": 60.0
+  },
+  {
+    "categoria": "Copão Whisky",
+    "nome": "Copão Black Label",
+    "preco": 65.0
+  },
+  {
+    "categoria": "Copão Whisky",
+    "nome": "Copão Gold Label",
+    "preco": 80.0
+  },
+  {
+    "categoria": "Copão Vodka",
+    "nome": "Copão Smirnoff",
+    "preco": 40.0
+  },
+  {
+    "categoria": "Copão Vodka",
+    "nome": "Copão Absolut",
+    "preco": 50.0
+  },
+  {
+    "categoria": "Copão Vodka",
+    "nome": "Copão Ciroc Trad.",
+    "preco": 80.0
+  },
+  {
+    "categoria": "Doses",
+    "nome": "Cowboy com Jack e Gelo Coco",
+    "preco": 35.0
+  },
+  {
+    "categoria": "Doses",
+    "nome": "Dose Balena",
+    "preco": 40.0
+  },
+  {
+    "categoria": "Doses",
+    "nome": "Dose Licor 43",
+    "preco": 25.0
+  },
+  {
+    "categoria": "Doses",
+    "nome": "Dose Licor Choc.",
+    "preco": 25.0
+  },
+  {
+    "categoria": "Doses",
+    "nome": "Dose Tequila",
+    "preco": 20.0
+  },
+  {
+    "categoria": "Caipirinhas",
+    "nome": "Caipirinha Pinga 500ml",
+    "preco": 20.0
+  },
+  {
+    "categoria": "Caipirinhas",
+    "nome": "Caipirinha Vodka 500ml",
+    "preco": 25.0
+  },
+  {
+    "categoria": "Caipirinhas",
+    "nome": "Caipirinha Saque 500ml",
+    "preco": 30.0
+  },
+  {
+    "categoria": "Caipirinhas",
+    "nome": "Caipirinha Gourmet 500ml",
+    "preco": 30.0
+  },
+  {
+    "categoria": "Essências",
+    "nome": "Essência Ziggy",
+    "preco": 20.0
+  },
+  {
+    "categoria": "Essências",
+    "nome": "Essência Adalya Love 66",
+    "preco": 25.0
+  },
+  {
+    "categoria": "Essências",
+    "nome": "Essência Zomo Strong Mint",
+    "preco": 20.0
+  },
+  {
+    "categoria": "Adicionais Narguilê",
+    "nome": "Adicional Narguilê - Bistrô e Mesa",
+    "preco": 30.0
+  },
+  {
+    "categoria": "Quebras e Danos",
+    "nome": "Vaso Pequeno",
+    "preco": 30.0
+  },
+  {
+    "categoria": "Quebras e Danos",
+    "nome": "Vaso Grande",
+    "preco": 50.0
+  },
+  {
+    "categoria": "Quebras e Danos",
+    "nome": "Rosh - Quebra ou Dano",
+    "preco": 20.0
+  }
+]

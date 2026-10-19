@@ -1,0 +1,10 @@
+DLOTUS V6 - TESTE LOCAL SEM ALTERAR BANCO
+Este pacote preserva a configuracao original do banco de dados.
+ATENCAO: arquivo INICIAR-BACKEND-REDE-V6.bat aponta para dlotus_v5_teste, nome historico do banco.
+NAO renomeie nem crie outro banco sem backup e migracao: isto pode ocultar os 245 produtos.
+O arquivo backend/relatorio_itens_19_10_2026.json contem 245 itens, mas nao prova o conteudo do MongoDB instalado.
+O frontend em modo rede usa automaticamente o IP do Caixa 1 informado na URL do navegador.
+Android: http://IP-DO-CAIXA-1:3002, mesma rede Wi-Fi/LAN, sem isolamento entre clientes.
+Teste somente com dados ficticios e em ambiente separado, apos backup do MongoDB.
+Nao exponha as portas 3002/8001 na internet.
+O pacote NAO esta homologado para producao, nem inclui nuvem/failover.
