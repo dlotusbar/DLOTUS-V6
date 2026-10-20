@@ -76,3 +76,21 @@
 .agenda-night .dl-agenda-dj-scene .dl-dj-figure{top:0!important;width:min(75vw,450px)!important;opacity:.85!important}
 .agenda-night .dl-agenda-dj-scene .dl-dj-equalizer{display:flex;top:auto;bottom:14px}
 @media(max-width:700px){.agenda-night>.dl-agenda-dj-scene{height:210px}.agenda-night .dl-agenda-dj-scene .dl-dj-figure{width:360px!important}}
+
+
+/* Revisão visual 19/10: equalizador delicado em largura total. */
+.dl-show-header,.agenda-night .agenda-hero{position:relative}
+.dl-header-eq{left:12px!important;right:12px!important;width:auto!important;transform:none!important;bottom:8px!important;height:25px!important;display:flex!important;justify-content:space-between!important;gap:2px!important;opacity:.78!important}
+.dl-header-eq span{flex:1 1 0!important;max-width:3px!important;min-width:1px!important;width:auto!important;border-radius:99px!important;background:linear-gradient(180deg,#f29bff,#38e2b6)!important;box-shadow:0 0 5px rgba(234,98,233,.32)!important;animation:dl-eq-refined 1.15s ease-in-out infinite alternate!important}
+@keyframes dl-eq-refined{0%{height:12%;opacity:.55}45%{height:60%;opacity:.95}100%{height:27%;opacity:.7}}
+/* Botões: uma linha no desktop e fumaça azul difusa ao passar o mouse. */
+.dl-reservas-tabs{display:grid!important;grid-template-columns:repeat(9,minmax(0,1fr))!important;gap:10px!important}
+.dl-reservas-tabs button{min-height:44px!important;padding:8px 4px!important;font-size:clamp(10px,.85vw,13px)!important;border-radius:12px!important}
+.dl-reservas-tabs button:hover,.dl-reservas-content button:hover:not(:disabled),.agenda-night button:hover:not(:disabled){box-shadow:0 0 15px 5px rgba(39,151,255,.22),0 0 38px 14px rgba(37,134,255,.12)!important;filter:drop-shadow(0 0 12px rgba(64,157,255,.25));transition:box-shadow .3s ease,filter .3s ease,transform .3s ease!important}
+/* Cards com respiro e efeito azul; não altera dados ou comportamento. */
+.dl-reservas-content .grid,.agenda-night .grid{gap:16px!important}
+.dl-reservas-content .grid>div,.dl-reservas-content .grid>article,.dl-reservas-content .grid>section,.agenda-night .grid>div,.agenda-night .grid>article,.agenda-night .grid>section{transition:box-shadow .3s ease,filter .3s ease,transform .3s ease}
+.dl-reservas-content .grid>div:hover,.dl-reservas-content .grid>article:hover,.dl-reservas-content .grid>section:hover,.agenda-night .grid>div:hover,.agenda-night .grid>article:hover,.agenda-night .grid>section:hover{box-shadow:0 0 20px 5px rgba(42,145,255,.2),0 0 42px 12px rgba(37,126,255,.1)!important}
+@media(max-width:1000px){.dl-reservas-tabs{grid-template-columns:repeat(3,minmax(0,1fr))!important}.dl-reservas-tabs button{font-size:12px!important}}
+@media(max-width:520px){.dl-reservas-tabs{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(prefers-reduced-motion:reduce){.dl-header-eq span{animation:none!important}}

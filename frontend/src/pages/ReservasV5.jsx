@@ -29,31 +29,6 @@ const eventosEmOrdem=(lista)=>[...lista].sort((a,b)=>
 
 
 // Cenário decorativo sem dependência externa: DJ vetorial com movimentos CSS.
-function PistaBaladaCenario(){
-  const cores=['#23c9ff','#ff55c8','#9c7cff','#35e4d0','#ffb85a','#a77aff','#ff76a9','#42c7ff','#d1a0ff','#64edbf'];
-  return <div className="dl-party-scene" aria-hidden="true">
-    <div className="dl-party-beam dl-party-beam-left"/><div className="dl-party-beam dl-party-beam-right"/>
-    <div className="dl-party-stage">
-      {cores.map((cor,i)=><div className="dl-party-person" key={i} style={{'--person-color':cor,'--delay':`${-i*.29}s`,'--tilt':`${i%2?'-':'+'}8deg`}}>
-        <svg viewBox="0 0 80 180" role="presentation">
-          <ellipse cx="40" cy="170" rx="25" ry="5" fill="#36d9ff" opacity=".25"/>
-          <g className="dl-party-dancer">
-            <path d="M29 98 L22 161 M49 98 L57 161" stroke="#17213b" strokeWidth="15" strokeLinecap="round"/>
-            <path d="M25 162 L14 167 M55 162 L66 167" stroke="#080d1a" strokeWidth="10" strokeLinecap="round"/>
-            <path d="M27 52 Q40 47 53 52 L59 105 Q40 112 20 105Z" fill={cor} stroke="#ffffff" strokeOpacity=".25" strokeWidth="2"/>
-            <path className="dl-party-arm-left" d="M27 61 L12 88 L5 58" stroke="#b98978" strokeWidth="11" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-            <path className="dl-party-arm-right" d="M53 61 L67 84 L75 50" stroke="#b98978" strokeWidth="11" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-            <rect x="34" y="43" width="12" height="14" rx="5" fill="#c79783"/>
-            <circle cx="40" cy="28" r="19" fill="#c79783"/>
-            <path d="M21 27 Q18 5 40 7 Q62 6 59 27 L53 17 Q40 24 27 17Z" fill={i%3===0?'#3a2344':'#13162c'}/>
-            <path d="M32 29 H36 M44 29 H48" stroke="#251b2d" strokeWidth="2" strokeLinecap="round"/>
-          </g>
-        </svg>
-      </div>)}
-    </div>
-  </div>;
-}
-
 const field = "w-full rounded-lg bg-zinc-900 border border-zinc-700 p-3 text-white";
 export default function ReservasV5() {
   const [tab,setTab]=useState("dashboard");
@@ -168,10 +143,9 @@ export default function ReservasV5() {
     ["Mesas disponíveis",totalLivres]
   ];
   return <div className="dl-reservas-stage w-full min-w-0 max-w-none p-4 md:p-8 text-white space-y-6">
-    <PistaBaladaCenario/>
     <div className="dl-reservas-content">
     <div className="dl-show-header flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 rounded-2xl border border-sky-500/30 bg-gradient-to-r from-slate-950 via-blue-950/70 to-slate-950 p-5 md:p-7">
-      <div className="dl-header-eq" aria-hidden="true">{Array.from({length:22},(_,i)=><span key={i} style={{animationDelay:`-${i*.09}s`}}/>)}</div><div className="min-w-0"><p className="text-xs uppercase tracking-[.2em] text-cyan-300 mb-2">D’Lotus Lounge Bar</p><h1 className="text-2xl md:text-4xl font-black leading-tight text-white">Central de <span className="text-sky-300">Reservas</span></h1><p className="text-zinc-300 mt-3 max-w-2xl">Gerencie eventos, mesas, clientes e entradas. Compartilhe o portal de reservas com seus clientes.</p></div>
+      <div className="dl-header-eq" aria-hidden="true">{Array.from({length:110},(_,i)=><span key={i} style={{animationDelay:`-${i*.09}s`}}/>)}</div><div className="min-w-0"><p className="text-xs uppercase tracking-[.2em] text-cyan-300 mb-2">D’Lotus Lounge Bar</p><h1 className="text-2xl md:text-4xl font-black leading-tight text-white">Central de <span className="text-sky-300">Reservas</span></h1><p className="text-zinc-300 mt-3 max-w-2xl">Gerencie eventos, mesas, clientes e entradas. Compartilhe o portal de reservas com seus clientes.</p></div>
       <div className="flex flex-wrap gap-3"><a href={destinoPublico} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-5 py-3 min-h-12">Abrir link público ↗</a><button type="button" onClick={()=>{const url=destinoPublico;navigator.clipboard?.writeText(url).then(()=>alert('Link público copiado: '+url)).catch(()=>window.prompt('Copie o link público:',url));}} className="rounded-xl border border-cyan-400/50 px-5 py-3 min-h-12 font-semibold hover:bg-cyan-400/10">Copiar link</button></div>
     </div>
     <div className="dl-reservas-tabs flex flex-wrap gap-2">{[["dashboard","Dashboard"],["eventos","Eventos"],["mesas","Mesas"],["reservas","Reservas"],["rapida","Reserva rápida"],["portaria","Portaria (QR)"],["clientes","Clientes"],["funcionarios","Funcionários"],["configuracoes","Configurações"]].map(([k,v])=><button key={k} onClick={()=>{setTab(k);setErro("");}} className={`rounded-lg px-4 py-3 transition-all duration-300 hover:shadow-[0_0_18px_rgba(56,189,248,0.55)] hover:ring-1 hover:ring-sky-300 ${tab===k?"bg-sky-600":"bg-zinc-800"}`}>{v}</button>)}</div>

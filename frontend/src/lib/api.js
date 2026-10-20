@@ -3,7 +3,7 @@ import { cacheGet, cacheSet, enqueue, uuid, processQueue } from "./offline";
 
 const BASE = process.env.REACT_APP_LAN_MODE === "1"
   ? `${window.location.protocol}//${window.location.hostname}:8001`
-  : (process.env.REACT_APP_BACKEND_URL || window.location.origin);
+  : process.env.REACT_APP_BACKEND_URL;
 export const API = `${BASE}/api`;
 
 const raw = axios.create({ baseURL: API, timeout: 10000 });
