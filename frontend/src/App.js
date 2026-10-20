@@ -9,7 +9,6 @@ import ConnectionBadge from "./components/ConnectionBadge";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Balcao from "./pages/Balcao";
-import OrderDetail from "./pages/OrderDetail";
 import ProductsAdmin from "./pages/ProductsAdmin";
 import PrintersAdmin from "./pages/PrintersAdmin";
 import Employees from "./pages/Employees";
