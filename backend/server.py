@@ -15,7 +15,7 @@ from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Dict, Any
 import math
 import httpx
-from pymongo.errors import DuplicateKeyError, OperationFailure, ServerSelectionTimeoutError, ConfigurationError
+from pymongo.errors import DuplicateKeyError
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from starlette.middleware.cors import CORSMiddleware
@@ -2061,20 +2061,6 @@ async def seed():
 
 @app.on_event("startup")
 async def on_startup():
-    # Verify database connectivity before running migrations/seed.
-    # Never log MONGO_URL: it contains a database password.
-    try:
-        await client.admin.command("ping")
-        logger.info("MongoDB Atlas: connection and authentication successful")
-    except OperationFailure as exc:
-        if exc.code in (18, 8000) or "auth" in str(exc).lower():
-            logger.error("MongoDB Atlas authentication rejected. Check the database username and NEW password in Render MONGO_URL; remove <db_password> placeholders. If password contains reserved URL characters, percent-encode it. Do not post credentials in logs or chat.")
-        else:
-            logger.error("MongoDB Atlas rejected an operation (error code %s).", exc.code)
-        raise
-    except (ServerSelectionTimeoutError, ConfigurationError) as exc:
-        logger.error("MongoDB Atlas connection/DNS/TLS problem. Check the exact hostname copied from Atlas and the Atlas IP access list. Error type: %s", type(exc).__name__)
-        raise
     await db.users.create_index("username", unique=True)
     await purchase_catalog_seed()
     await db.orders.create_index("status")
