@@ -150,7 +150,7 @@ export default function App() {
           <Route path="/reservar" element={<ReservasPublicas />} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
-          <Route path="/balcao" element={<Protected><Balcao /></Protected>} 
+          <Route path="/balcao" element={<Protected><Balcao /></Protected>} />
           <Route path="/bar" element={<Protected><BarPanel /></Protected>} />
           <Route path="/rosh" element={<Protected><RoshPanel /></Protected>} />
           <Route path="/caixa" element={<Protected><CaixaPanel /></Protected>} />
