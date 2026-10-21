@@ -7,7 +7,9 @@ import { Zap, Users as UsersIcon, X, User, WalletCards } from "lucide-react";
 // Cache em memoria: preserva as mesas ao sair e voltar para o Balcao.
 // Uma unica consulta de mesas pode estar em andamento por vez.
 // Apenas dados de exibicao em cache de sessao. Nao usar status antigo para vendas.
-const CACHE_KEY = "dlotus_balcao_mesas_visual_v2";
+const CACHE_KEY = "dlotus_balcao_mesas_visual_v3";
+const CACHE_TIME_KEY = "dlotus_balcao_mesas_atualizado_v3";
+const CACHE_FRESH_MS = 20000;
 function readVisualCache() {
   try {
     const data = JSON.parse(sessionStorage.getItem(CACHE_KEY) || "null");
@@ -15,6 +17,7 @@ function readVisualCache() {
   } catch { return null; }
 }
 let tablesCache = readVisualCache();
+let lastSuccessfulFetch = Number(sessionStorage.getItem(CACHE_TIME_KEY) || 0);
 let tablesRequest = null;
 
 function fetchTables() {
@@ -23,6 +26,8 @@ function fetchTables() {
       .then(({ data }) => {
         if (!Array.isArray(data)) throw new Error("Resposta invalida de mesas");
         tablesCache = data;
+        lastSuccessfulFetch = Date.now();
+        try { sessionStorage.setItem(CACHE_TIME_KEY, String(lastSuccessfulFetch)); } catch {}
         try {
           sessionStorage.setItem(CACHE_KEY, JSON.stringify(data.map(t => ({
             id: t.id, kind: t.kind, number: t.number,
@@ -38,8 +43,9 @@ function fetchTables() {
 
 export default function Balcao() {
   const [tables, setTables] = useState(() => tablesCache || []);
-  const [tablesReady, setTablesReady] = useState(false);
+  const [tablesReady, setTablesReady] = useState(() => !!tablesCache?.length && Date.now() - lastSuccessfulFetch < CACHE_FRESH_MS);
   const [tablesError, setTablesError] = useState(false);
+  const [loadingTables, setLoadingTables] = useState(() => !tablesCache?.length);
   const [cashiers, setCashiers] = useState([]);
   const [quickCashierId, setQuickCashierId] = useState("");
   const [tab, setTab] = useState("venda"); // venda | rapida
@@ -61,11 +67,11 @@ export default function Balcao() {
       if (!active || document.hidden) return;
       try {
         const data = await fetchTables();
-        if (active) { setTables(data); setTablesReady(true); setTablesError(false); }
+        if (active) { setTables(data); setTablesReady(true); setTablesError(false); setLoadingTables(false); }
       } catch (error) {
         // Mantem as mesas ja exibidas quando a rede falha.
         // Nao dispara novas tentativas em paralelo.
-        if (active) setTablesError(true);
+        if (active) { setTablesError(true); setLoadingTables(false); if (Date.now() - lastSuccessfulFetch >= CACHE_FRESH_MS) setTablesReady(false); }
         console.warn("Falha ao atualizar mesas:", error?.message || error);
       } finally {
         if (active) timer = setTimeout(refresh, 15000);
@@ -106,7 +112,16 @@ export default function Balcao() {
     catch(e) { toast.error(e.response?.data?.detail || "Não foi possível cadastrar"); }
   };
   const openTable = async (t) => {
-    if (!tablesReady) { toast.info("Aguarde a confirmacao das mesas pelo servidor."); return; }
+    if (!tablesReady || Date.now() - lastSuccessfulFetch >= CACHE_FRESH_MS) {
+      toast.info("Conferindo a situação atual da mesa...");
+      try { const fresh = await fetchTables(); if (fresh) { setTables(fresh); setTablesReady(true); setTablesError(false); const current = fresh.find(x => x.id === t.id); if (current) return openTableFresh(current); } }
+      catch { toast.error("Não foi possível confirmar a mesa no servidor."); }
+      return;
+    }
+    return openTableFresh(t);
+  };
+
+  const openTableFresh = async (t) => {
     if (t.open_order_id) {
       if (tab === "prazo") { toast.error("Mesa com comanda aberta. Selecione uma mesa livre para a venda a prazo."); return; }
       navigate(`/comanda/${t.open_order_id}`); return;
@@ -171,7 +186,7 @@ export default function Balcao() {
 
       {tab === "prazo" && prazoCliente && <p className="mb-4 p-3 bg-amber-950/40 rounded-lg text-amber-200">Venda a prazo para <b>{prazoCliente.cliente}</b>. Escolha uma mesa. <button className="underline ml-3" onClick={abrirPrazo}>Trocar cliente</button></p>}
       {prazoModal && <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"><section className="bg-[#121215] border border-amber-700 rounded-xl p-5 w-full max-w-lg max-h-[90vh] overflow-y-auto space-y-4"><h2 className="text-xl font-bold text-amber-300">Selecionar cliente — Venda a Prazo</h2><input className="w-full bg-zinc-900 p-3 rounded" placeholder="Buscar cliente ou telefone" value={prazoBusca} onChange={e=>setPrazoBusca(e.target.value)}/><div className="max-h-44 overflow-y-auto space-y-1">{prazoContas.filter(c=>(c.cliente+" "+c.telefone).toLowerCase().includes(prazoBusca.toLowerCase())).map(c=><button key={c.id} className="block w-full text-left p-2 bg-zinc-800 rounded hover:bg-zinc-700" onClick={()=>{setPrazoCliente(c);setTab("prazo");setPrazoModal(false);toast.success("Escolha a mesa para "+c.cliente)}}>{c.cliente} — {c.telefone}</button>)}</div><h3 className="font-bold">Cadastrar novo cliente</h3><form onSubmit={cadastrarPrazo} className="space-y-2">{[["cliente","Nome"],["telefone","Telefone"],["vencimento","Data de pagamento"]].map(([k,label])=><label key={k} className="block text-sm">{label}<input required={k!=="telefone"} type={k==="vencimento"?"date":"text"} className="block w-full bg-zinc-900 p-2 rounded" value={novoPrazo[k]} onChange={e=>setNovoPrazo({...novoPrazo,[k]:e.target.value})}/></label>)}<button className="bg-amber-500 text-black rounded px-4 py-2 font-bold">Cadastrar e selecionar</button></form><button className="text-zinc-300 underline" onClick={()=>setPrazoModal(false)}>Cancelar</button></section></div>}
-      {!tablesReady && <p role="status" className="mb-4 rounded-lg border border-amber-500/40 bg-amber-950/30 p-3 text-amber-200 text-sm">{tablesError ? "Servidor demorando ou indisponivel. Tentando novamente; mesas bloqueadas ate confirmar o status atual." : "Exibindo mesas enquanto confirmamos a disponibilidade no servidor..."}</p>}
+      {!tablesReady && <p role="status" className="mb-4 rounded-lg border border-amber-500/40 bg-amber-950/30 p-3 text-amber-200 text-sm">{tablesError ? "Servidor demorando ou indisponivel. Tentando novamente; mesas bloqueadas ate confirmar o status atual." : tables.length ? "Mesas em cache. Conferindo situação atual no servidor..." : "Preparando mesas. Aguarde confirmação do servidor..."}</p>}
       <TableGroup title="Mesas 1-16" tables={mesas1} onOpen={openTable} ready={tablesReady} placeholderStart={1} placeholderEnd={16} placeholderKind="mesa" />
       <TableGroup title="Bistrôs 17-40" tables={bistros} onOpen={openTable} ready={tablesReady} placeholderStart={17} placeholderEnd={40} placeholderKind="bistro" />
       <TableGroup title="Mesas 41-47" tables={mesas2} onOpen={openTable} ready={tablesReady} placeholderStart={41} placeholderEnd={47} placeholderKind="mesa" />
