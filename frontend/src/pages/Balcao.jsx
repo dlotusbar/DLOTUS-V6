@@ -4,26 +4,10 @@ import api, { formatBRL } from "../lib/api";
 import { toast } from "sonner";
 import { Zap, Users as UsersIcon, X, User, WalletCards } from "lucide-react";
 
-// Cache em memoria: preserva as mesas ao sair e voltar para o Balcao.
-// Uma unica consulta de mesas pode estar em andamento por vez.
-let tablesCache = null;
-let tablesRequest = null;
-
-function fetchTables() {
-  if (!tablesRequest) {
-    tablesRequest = api.get("/tables")
-      .then(({ data }) => {
-        if (!Array.isArray(data)) throw new Error("Resposta invalida de mesas");
-        tablesCache = data;
-        return data;
-      })
-      .finally(() => { tablesRequest = null; });
-  }
-  return tablesRequest;
-}
-
 export default function Balcao() {
-  const [tables, setTables] = useState(() => tablesCache || []);
+  const [tables, setTables] = useState([]);
+  const [loadingTables, setLoadingTables] = useState(true);
+  const [tablesError, setTablesError] = useState(false);
   const [cashiers, setCashiers] = useState([]);
   const [quickCashierId, setQuickCashierId] = useState("");
   const [tab, setTab] = useState("venda"); // venda | rapida
@@ -37,40 +21,54 @@ export default function Balcao() {
   const [tableCustomer, setTableCustomer] = useState(null); // table pending customer-name prompt
   const navigate = useNavigate();
 
+  // Atualização sequencial: uma requisição por vez, sem acumular chamadas lentas.
+  // Quando a aba fica oculta, interrompe o polling; ao voltar, atualiza imediatamente.
   useEffect(() => {
     let active = true;
+    let pending = false;
     let timer;
-
-    const refresh = async () => {
-      if (!active || document.hidden) return;
+    let controller;
+    const schedule = () => {
+      clearTimeout(timer);
+      if (active && !document.hidden) timer = setTimeout(fetchTables, 6000);
+    };
+    const fetchTables = async () => {
+      if (!active || pending || document.hidden) return;
+      pending = true;
+      controller = new AbortController();
       try {
-        const data = await fetchTables();
-        if (active) setTables(data);
+        const { data } = await api.get("/tables", { signal: controller.signal });
+        if (active) {
+          setTables(Array.isArray(data) ? data : []);
+          setTablesError(false);
+        }
       } catch (error) {
-        // Mantem as mesas ja exibidas quando a rede falha.
-        // Nao dispara novas tentativas em paralelo.
-        console.warn("Falha ao atualizar mesas:", error?.message || error);
+        if (active && error.code !== "ERR_CANCELED" && error.name !== "CanceledError") {
+          setTablesError(true);
+        }
       } finally {
-        if (active) timer = setTimeout(refresh, 15000);
+        pending = false;
+        if (active) {
+          setLoadingTables(false);
+          schedule();
+        }
       }
     };
-
-    const onVisibilityChange = () => {
-      if (!document.hidden) {
+    const onVisible = () => {
+      if (document.hidden) {
         clearTimeout(timer);
-        // Se ja existe consulta em andamento, fetchTables reutiliza a mesma.
-        refresh();
       } else {
         clearTimeout(timer);
+        fetchTables();
       }
     };
-
-    refresh();
-    document.addEventListener("visibilitychange", onVisibilityChange);
+    document.addEventListener("visibilitychange", onVisible);
+    fetchTables();
     return () => {
       active = false;
       clearTimeout(timer);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
+      document.removeEventListener("visibilitychange", onVisible);
+      controller?.abort();
     };
   }, []);
   useEffect(() => { api.get("/cashiers").then(r => setCashiers(r.data.filter(c => c.status === "open"))).catch(() => {}); }, [showQuickModal]);
@@ -153,6 +151,8 @@ export default function Balcao() {
 
       {tab === "prazo" && prazoCliente && <p className="mb-4 p-3 bg-amber-950/40 rounded-lg text-amber-200">Venda a prazo para <b>{prazoCliente.cliente}</b>. Escolha uma mesa. <button className="underline ml-3" onClick={abrirPrazo}>Trocar cliente</button></p>}
       {prazoModal && <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"><section className="bg-[#121215] border border-amber-700 rounded-xl p-5 w-full max-w-lg max-h-[90vh] overflow-y-auto space-y-4"><h2 className="text-xl font-bold text-amber-300">Selecionar cliente — Venda a Prazo</h2><input className="w-full bg-zinc-900 p-3 rounded" placeholder="Buscar cliente ou telefone" value={prazoBusca} onChange={e=>setPrazoBusca(e.target.value)}/><div className="max-h-44 overflow-y-auto space-y-1">{prazoContas.filter(c=>(c.cliente+" "+c.telefone).toLowerCase().includes(prazoBusca.toLowerCase())).map(c=><button key={c.id} className="block w-full text-left p-2 bg-zinc-800 rounded hover:bg-zinc-700" onClick={()=>{setPrazoCliente(c);setTab("prazo");setPrazoModal(false);toast.success("Escolha a mesa para "+c.cliente)}}>{c.cliente} — {c.telefone}</button>)}</div><h3 className="font-bold">Cadastrar novo cliente</h3><form onSubmit={cadastrarPrazo} className="space-y-2">{[["cliente","Nome"],["telefone","Telefone"],["vencimento","Data de pagamento"]].map(([k,label])=><label key={k} className="block text-sm">{label}<input required={k!=="telefone"} type={k==="vencimento"?"date":"text"} className="block w-full bg-zinc-900 p-2 rounded" value={novoPrazo[k]} onChange={e=>setNovoPrazo({...novoPrazo,[k]:e.target.value})}/></label>)}<button className="bg-amber-500 text-black rounded px-4 py-2 font-bold">Cadastrar e selecionar</button></form><button className="text-zinc-300 underline" onClick={()=>setPrazoModal(false)}>Cancelar</button></section></div>}
+      {loadingTables && <p role="status" className="mb-4 text-sm text-zinc-300">Carregando mesas do servidor...</p>}
+      {tablesError && <p role="alert" className="mb-4 rounded-lg border border-amber-500/40 bg-amber-950/30 p-3 text-sm text-amber-200">Conexão lenta ou indisponível. Mantendo as últimas mesas carregadas; nova tentativa automática em alguns segundos.</p>}
       <TableGroup title="Mesas 1-16" tables={mesas1} onOpen={openTable} />
       <TableGroup title="Bistrôs 17-40" tables={bistros} onOpen={openTable} />
       <TableGroup title="Mesas 41-47" tables={mesas2} onOpen={openTable} />
