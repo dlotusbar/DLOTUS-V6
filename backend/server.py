@@ -32,6 +32,14 @@ JWT_ALGO = "HS256"
 JWT_EXPIRE_HOURS = 12
 
 app = FastAPI(title="D'Lotus Lounge Bar PDV")
+from fastapi.responses import RedirectResponse
+
+@app.get("/", include_in_schema=False)
+async def abrir_pdv():
+    return RedirectResponse(
+        url="https://dlotus-v6-frontend.onrender.com/",
+        status_code=307
+    )
 api = APIRouter(prefix="/api")
 bearer = HTTPBearer(auto_error=False)
 logger = logging.getLogger("dlotus")
