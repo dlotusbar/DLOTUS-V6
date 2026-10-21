@@ -33,6 +33,11 @@ import { LayoutDashboard, Beer, Flame, CreditCard, Users, Settings, Printer, Fil
 const ICONS = { LayoutDashboard, Beer, Flame, CreditCard, Users, Settings, Printer, FileText, LogOut, ClipboardList, History, UtensilsCrossed, DoorOpen, TrendingUp, Settings2, CalendarCheck, Package, WalletCards };
 const navItems = NAV_ITEMS.map(item => ({ ...item, icon: ICONS[item.icon] }));
 
+// Página inicial de acordo com as permissões reais do usuário.
+function primeiraPaginaPermitida(can) {
+  return NAV_ITEMS.find(item => can(item.perm))?.to || null;
+}
+
 function Shell({ children }) {
   const { user, logout, can } = useAuth();
   const { settings } = useTheme();
@@ -41,11 +46,12 @@ function Shell({ children }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const logoSrc = settings.general?.logo_main || "/dlotus-logo-sm.png";
   const logoSize = settings.menu?.logo_size ?? 180;
+  const paginaInicial = primeiraPaginaPermitida(can) || "/dashboard";
 
   return (
     <div className="min-h-screen flex" style={{ background: "var(--dl-body-bg)", color: "var(--dl-text-primary)" }}>
       <aside className="hidden md:flex w-64 flex-col p-5 border-r" style={{ background: "var(--dl-menu-bg)", borderColor: "rgba(212,175,55,0.15)" }}>
-        <Link to="/dashboard" className="mb-8 block" data-testid="brand-link">
+        <Link to={paginaInicial} className="mb-8 block" data-testid="brand-link">
           <img src={logoSrc} alt="Logo" className="mx-auto drop-shadow-[0_0_12px_rgba(56,189,248,0.3)]" style={{ maxWidth: `${logoSize}px`, width: "100%" }} />
           {settings.menu?.show_name && <p className="text-[10px] tracking-[0.3em] text-zinc-500 uppercase mt-2 text-center">PDV · {settings.general?.menu_title}</p>}
         </Link>
@@ -103,7 +109,7 @@ function Shell({ children }) {
       {/* Mobile top bar */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-30 border-b px-3 py-2 flex items-center justify-between mobile-topbar" style={{ background: "var(--dl-menu-bg)", borderColor: "rgba(212,175,55,0.15)" }}>
         <button type="button" aria-label="Abrir menu" onClick={() => setMobileMenuOpen(true)} className="p-2 text-white rounded-lg"><Menu size={24}/></button>
-        <Link to="/dashboard" className="flex items-center gap-2 min-w-0"><img src={logoSrc} alt="D’Lotus" className="h-9 max-w-[120px] object-contain"/><span className="text-xs font-semibold text-zinc-200">PDV</span></Link>
+        <Link to={paginaInicial} className="flex items-center gap-2 min-w-0"><img src={logoSrc} alt="D’Lotus" className="h-9 max-w-[120px] object-contain"/><span className="text-xs font-semibold text-zinc-200">PDV</span></Link>
         <button type="button" aria-label="Todas as funções" onClick={() => setMobileMenuOpen(true)} className="p-2 text-zinc-200 rounded-lg"><MoreHorizontal size={24}/></button>
       </div>
       <main className="flex-1 min-w-0 overflow-x-hidden pt-16 pb-24 md:pt-0 md:pb-0">
@@ -128,14 +134,28 @@ function Shell({ children }) {
 }
 
 function Protected({ children }) {
-  const { user, loading, can } = useAuth();
+  const { user, loading, can, logout } = useAuth();
   const location = useLocation();
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-[#0A0A0C] text-[#D4AF37]">Carregando...</div>;
   if (!user) return <Navigate to="/login" replace />;
-  const onlyCompras = user.role?.toLowerCase() !== "administrador" && (user.permissions || []).length === 1 && ["estoque", "compras"].includes(user.permissions[0]);
+  const onlyCompras = user.role?.toLowerCase() !== "administrador" &&
+    (user.permissions || []).length === 1 &&
+    ["estoque", "compras"].includes(user.permissions[0]);
+  const paginaInicial = onlyCompras ? "/compras" : primeiraPaginaPermitida(can);
+  if (!paginaInicial) {
+    return <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-[#0A0A0C] p-6 text-center text-white">
+      <h1 className="text-xl font-bold">Nenhuma página autorizada</h1>
+      <p className="text-zinc-400">Peça ao administrador para liberar pelo menos uma permissão para seu usuário.</p>
+      <button className="rounded-lg bg-[#D4AF37] px-5 py-3 font-bold text-black" onClick={() => { logout(); window.location.assign('/login'); }}>Voltar ao login</button>
+    </div>;
+  }
   if (onlyCompras && location.pathname !== "/compras") return <Navigate to="/compras" replace />;
   const page = NAV_ITEMS.find(item => item.to === location.pathname);
-  if (page && !can(page.perm)) return <Navigate to="/dashboard" replace />;
+  if (page && !can(page.perm)) return <Navigate to={paginaInicial} replace />;
+  // A comanda deve respeitar a permissão do Balcão.
+  if (location.pathname.startsWith("/comanda/") && !can(NAV_ITEMS.find(item => item.to === "/balcao")?.perm || "balcao")) {
+    return <Navigate to={paginaInicial} replace />;
+  }
   return <Shell>{children}</Shell>;
 }
 
