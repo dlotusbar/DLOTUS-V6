@@ -17,6 +17,8 @@ export default function CaixaPanel() {
   const [receipt, setReceipt] = useState(null);
   const [printing, setPrinting] = useState(false);
   const closePrintingRef = useRef(false);
+  const closeBusyRef = useRef(false);
+  const [closeBusy, setCloseBusy] = useState(false);
   const [sangriaCash, setSangriaCash] = useState(null);
   const [sangriaAmount, setSangriaAmount] = useState("");
   const [sangriaReason, setSangriaReason] = useState("");
@@ -80,15 +82,47 @@ export default function CaixaPanel() {
   };
 
   const confirmClose = async () => {
-    if (!closeModal) return;
+    if (!closeModal || closeBusyRef.current) return;
+    const current = closeModal;
+    closeBusyRef.current = true;
+    setCloseBusy(true);
     try {
-      await api.post(`/cashiers/${closeModal.cashier.id}/close`);
-      const { data } = await api.get(`/cashiers/${closeModal.cashier.id}/report`);
-      setCloseModal({ ...closeModal, report: data, closed: true });
-      toast.success(`${closeModal.cashier.name} fechado`);
-      load();
-      if (tab === "historico") loadHistory();
-    } catch (e) { toast.error("Erro ao fechar"); }
+      await api.post(`/cashiers/${current.cashier.id}/close`);
+    } catch (e) {
+      const detail = e.response?.data?.detail;
+      const message = typeof detail === "string" ? detail :
+        (detail?.message || detail?.mensagem || e.message || "Falha de comunicação com o servidor");
+      toast.error(`Não foi possível confirmar o fechamento: ${message}`);
+      // Uma falha de rede pode ocorrer após o servidor ter fechado o caixa.
+      // Atualiza o estado sem reenviar automaticamente a operação financeira.
+      try {
+        const { data: latest } = await api.get("/cashiers");
+        setCashiers(latest);
+        const updated = latest.find(c => c.id === current.cashier.id);
+        if (updated?.status !== "open") {
+          setCloseModal({ ...current, closed: true });
+          toast.info("O caixa consta como fechado no servidor. Confira o histórico antes de repetir a operação.");
+        }
+      } catch (_) { /* Estado não confirmado; não repetir automaticamente. */ }
+      closeBusyRef.current = false;
+      setCloseBusy(false);
+      return;
+    }
+
+    // POST confirmado: o fechamento já aconteceu. Falha no relatório não
+    // deve ser mostrada como falha no fechamento.
+    setCloseModal({ ...current, closed: true });
+    toast.success(`${current.cashier.name} fechado`);
+    try {
+      const { data } = await api.get(`/cashiers/${current.cashier.id}/report`);
+      setCloseModal(prev => prev?.cashier.id === current.cashier.id ? { ...prev, report: data, closed: true } : prev);
+    } catch (e) {
+      toast.warning("Caixa fechado, mas não foi possível atualizar o relatório. Consulte o histórico.");
+    }
+    try { await load(); } catch (_) { /* Não desfaz o fechamento. */ }
+    if (tab === "historico") { try { await loadHistory(); } catch (_) {} }
+    closeBusyRef.current = false;
+    setCloseBusy(false);
   };
 
   const printReport = async () => {
@@ -301,13 +335,14 @@ export default function CaixaPanel() {
           onConfirm={confirmClose}
           onPrint={printReport}
           printing={printing}
+          closeBusy={closeBusy}
         />
       )}
     </div>
   );
 }
 
-function CloseCashierModal({ state, onClose, onConfirm, onPrint, printing }) {
+function CloseCashierModal({ state, onClose, onConfirm, onPrint, printing, closeBusy }) {
   const { cashier, report, closed } = state;
   const t = report.sales_by_method || {};
   return (
@@ -361,8 +396,8 @@ function CloseCashierModal({ state, onClose, onConfirm, onPrint, printing }) {
         ) : (
           <div className="flex gap-2">
             <button onClick={onClose} className="flex-1 py-3 bg-[#18181D] text-zinc-300 rounded-xl">Cancelar</button>
-            <button onClick={onConfirm} data-testid="confirm-close-cashier" className="flex-1 py-3 bg-red-950/40 border border-red-500/40 text-red-300 font-bold rounded-xl hover:bg-red-900/40">
-              Confirmar Fechamento
+            <button onClick={onConfirm} disabled={closeBusy} data-testid="confirm-close-cashier" className="flex-1 py-3 bg-red-950/40 border border-red-500/40 text-red-300 font-bold rounded-xl hover:bg-red-900/40">
+              {closeBusy ? "Fechando..." : "Confirmar Fechamento"}
             </button>
           </div>
         )}
