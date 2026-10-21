@@ -58,29 +58,6 @@ export default function ProductsAdmin() {
     } catch (e) { toast.error(e.response?.data?.detail || "Erro"); }
   };
 
-  const importarCardapio = async () => {
-    if (!window.confirm("Importar os produtos e preços do cardápio D’Lotus? Os produtos existentes não serão alterados. Custos e estoques dos novos produtos começam em zero.")) return;
-    try {
-      const { data } = await api.post("/products/importar-cardapio-dlotus");
-      toast.success(`Cardápio importado: ${data.criados} produtos novos; ${data.ja_existentes} já existentes.`);
-      await load();
-    } catch (e) { toast.error(e.response?.data?.detail || "Erro ao importar cardápio"); }
-  };
-
-  const substituirRelatorio = async () => {
-    try {
-      const { data: info } = await api.get("/products/relatorio-2026/preview");
-      const mensagem = `SUBSTITUIR TODOS os ${info.produtos_atuais} produtos e ${info.categorias_atuais} categorias atuais por ${info.total_novos} itens e ${info.categorias_novas} categorias do relatório de 19/10/2026?\n\nO servidor salvará um backup dos cadastros antigos. Vendas e fechamentos não serão apagados.\n\nDigite SUBSTITUIR PRODUTOS E CATEGORIAS para confirmar:`;
-      const confirmacao = window.prompt(mensagem);
-      if (confirmacao === null) return;
-      if (confirmacao !== "SUBSTITUIR PRODUTOS E CATEGORIAS") { toast.error("Confirmação incorreta. Nenhum cadastro alterado."); return; }
-      const { data } = await api.post("/products/relatorio-2026/substituir", { confirmacao });
-      toast.success(`${data.produtos} produtos e ${data.categorias} categorias cadastrados. Backup: ${data.backup}`);
-      setForm(empty); setEditing(null);
-      await load();
-    } catch (e) { toast.error(e.response?.data?.detail || "Erro ao substituir o catálogo"); }
-  };
-
   const edit = (p) => { setEditing(p.id); setForm({ ...p }); window.scrollTo(0, 0); };
   const del = async (p) => {
     if (!window.confirm(`EXCLUIR permanentemente "${p.name}"? Essa ação não pode ser desfeita.`)) return;
@@ -102,14 +79,6 @@ export default function ProductsAdmin() {
   return (
     <div className="p-6 lg:p-10 pb-24 space-y-6">
       <h1 className="font-display text-3xl font-extrabold gold-text">Produtos</h1>
-      <div className="bg-[#121215] border border-[#D4AF37]/30 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3">
-        <div><strong className="text-zinc-100">Cardápio D’Lotus</strong><p className="text-sm text-zinc-400">Importa os itens e preços da imagem sem apagar ou alterar produtos já cadastrados.</p></div>
-        <button onClick={importarCardapio} className="px-4 py-2 bg-[#D4AF37] text-black font-bold rounded-lg">Importar cardápio D’Lotus</button>
-      </div>
-      <div className="bg-[#121215] border border-red-500/40 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3">
-        <div><strong className="text-white">Substituir catálogo pelo Relatório de Itens — 19/10/2026</strong><p className="text-sm text-zinc-400">Apaga os produtos e categorias atuais e cadastra os 245 itens das 12 páginas, com custo, venda e categoria. Faz backup antes. Não apaga vendas e fechamentos.</p></div>
-        <button onClick={substituirRelatorio} className="px-4 py-2 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg">Substituir produtos e categorias</button>
-      </div>
       <div className="bg-[#121215] border border-white/5 rounded-2xl p-5">
         <h3 className="font-display text-lg font-bold mb-4">{editing ? "Editar Produto" : "Novo Produto"}</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
