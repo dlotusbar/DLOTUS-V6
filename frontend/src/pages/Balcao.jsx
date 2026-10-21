@@ -1,48 +1,4 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import api, { formatBRL } from "../lib/api";
-import { toast } from "sonner";
-import { Zap, Users as UsersIcon, X, User, WalletCards } from "lucide-react";
-
-export default function Balcao() {
-  const [tables, setTables] = useState([]);
-  const [cashiers, setCashiers] = useState([]);
-  const [quickCashierId, setQuickCashierId] = useState("");
-  const [tab, setTab] = useState("venda"); // venda | rapida
-  const [showQuickModal, setShowQuickModal] = useState(false);
-  const [customerName, setCustomerName] = useState("");
-  const [prazoModal, setPrazoModal] = useState(false);
-  const [prazoContas, setPrazoContas] = useState([]);
-  const [prazoCliente, setPrazoCliente] = useState(null);
-  const [prazoBusca, setPrazoBusca] = useState("");
-  const [novoPrazo, setNovoPrazo] = useState({cliente:"", telefone:"", vencimento:""});
-  const [tableCustomer, setTableCustomer] = useState(null); // table pending customer-name prompt
-  const navigate = useNavigate();
-
-  const load = () => api.get("/tables").then((r) => setTables(r.data));
-  useEffect(() => { load(); const i = setInterval(load, 4000); return () => clearInterval(i); }, []);
-  useEffect(() => { api.get("/cashiers").then(r => setCashiers(r.data.filter(c => c.status === "open"))).catch(() => {}); }, [showQuickModal]);
-
-  const mesas1 = tables.filter((t) => t.kind === "mesa" && t.number <= 16);
-  const bistros = tables.filter((t) => t.kind === "bistro");
-  const mesas2 = tables.filter((t) => t.kind === "mesa" && t.number >= 41);
-
-  const abrirPrazo = async () => {
-    try { const r = await api.get("/prazo/contas"); setPrazoContas(r.data); setPrazoModal(true); }
-    catch(e) { toast.error(e.response?.data?.detail || "Erro ao buscar clientes"); }
-  };
-  const cadastrarPrazo = async (e) => {
-    e.preventDefault();
-    try { const r = await api.post("/prazo/contas", novoPrazo); setPrazoContas(v=>[r.data,...v]); setPrazoCliente(r.data); setPrazoModal(false); setTab("prazo"); toast.success("Cliente selecionado. Escolha a mesa."); }
-    catch(e) { toast.error(e.response?.data?.detail || "Não foi possível cadastrar"); }
-  };
-  const openTable = async (t) => {
-    if (t.open_order_id) {
-      if (tab === "prazo") { toast.error("Mesa com comanda aberta. Selecione uma mesa livre para a venda a prazo."); return; }
-      navigate(`/comanda/${t.open_order_id}`); return;
-    }
-    if (tab === "prazo") {
-      if (!prazoCliente) { abrirPrazo(); return; }
+if (!prazoCliente) { abrirPrazo(); return; }
       try { const r = await api.post("/orders", {table_id:t.id, items:[], quick_sale:false, prazo_conta_id:prazoCliente.id}); navigate(`/comanda/${r.data.id}`); }
       catch(e) { toast.error(e.response?.data?.detail || "Erro ao abrir venda a prazo"); }
       return;
@@ -170,14 +126,3 @@ function TableGroup({ title, tables, onOpen }) {
                   : "bg-emerald-950/30 border-emerald-500/40 hover:border-emerald-400 hover:-translate-y-0.5"
               }`}
             >
-              <span className="text-[10px] uppercase tracking-widest text-zinc-400">{t.kind === "bistro" ? "Bistrô" : "Mesa"}</span>
-              <span className="font-display text-3xl font-bold text-zinc-100 mono">{t.number}</span>
-              {occupied && <span className="mono text-xs text-amber-400">{formatBRL(t.total)}</span>}
-              {!occupied && <span className="text-[10px] text-emerald-400 uppercase tracking-widest">Livre</span>}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
