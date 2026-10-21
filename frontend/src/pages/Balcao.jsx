@@ -1,4 +1,100 @@
-if (!prazoCliente) { abrirPrazo(); return; }
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import api, { formatBRL } from "../lib/api";
+import { toast } from "sonner";
+import { Zap, Users as UsersIcon, X, User, WalletCards } from "lucide-react";
+
+// Cache em memoria: preserva as mesas ao sair e voltar para o Balcao.
+// Uma unica consulta de mesas pode estar em andamento por vez.
+let tablesCache = null;
+let tablesRequest = null;
+
+function fetchTables() {
+  if (!tablesRequest) {
+    tablesRequest = api.get("/tables")
+      .then(({ data }) => {
+        if (!Array.isArray(data)) throw new Error("Resposta invalida de mesas");
+        tablesCache = data;
+        return data;
+      })
+      .finally(() => { tablesRequest = null; });
+  }
+  return tablesRequest;
+}
+
+export default function Balcao() {
+  const [tables, setTables] = useState(() => tablesCache || []);
+  const [cashiers, setCashiers] = useState([]);
+  const [quickCashierId, setQuickCashierId] = useState("");
+  const [tab, setTab] = useState("venda"); // venda | rapida
+  const [showQuickModal, setShowQuickModal] = useState(false);
+  const [customerName, setCustomerName] = useState("");
+  const [prazoModal, setPrazoModal] = useState(false);
+  const [prazoContas, setPrazoContas] = useState([]);
+  const [prazoCliente, setPrazoCliente] = useState(null);
+  const [prazoBusca, setPrazoBusca] = useState("");
+  const [novoPrazo, setNovoPrazo] = useState({cliente:"", telefone:"", vencimento:""});
+  const [tableCustomer, setTableCustomer] = useState(null); // table pending customer-name prompt
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    let active = true;
+    let timer;
+
+    const refresh = async () => {
+      if (!active || document.hidden) return;
+      try {
+        const data = await fetchTables();
+        if (active) setTables(data);
+      } catch (error) {
+        // Mantem as mesas ja exibidas quando a rede falha.
+        // Nao dispara novas tentativas em paralelo.
+        console.warn("Falha ao atualizar mesas:", error?.message || error);
+      } finally {
+        if (active) timer = setTimeout(refresh, 15000);
+      }
+    };
+
+    const onVisibilityChange = () => {
+      if (!document.hidden) {
+        clearTimeout(timer);
+        // Se ja existe consulta em andamento, fetchTables reutiliza a mesma.
+        refresh();
+      } else {
+        clearTimeout(timer);
+      }
+    };
+
+    refresh();
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, []);
+  useEffect(() => { api.get("/cashiers").then(r => setCashiers(r.data.filter(c => c.status === "open"))).catch(() => {}); }, [showQuickModal]);
+
+  const mesas1 = tables.filter((t) => t.kind === "mesa" && t.number <= 16);
+  const bistros = tables.filter((t) => t.kind === "bistro");
+  const mesas2 = tables.filter((t) => t.kind === "mesa" && t.number >= 41);
+
+  const abrirPrazo = async () => {
+    try { const r = await api.get("/prazo/contas"); setPrazoContas(r.data); setPrazoModal(true); }
+    catch(e) { toast.error(e.response?.data?.detail || "Erro ao buscar clientes"); }
+  };
+  const cadastrarPrazo = async (e) => {
+    e.preventDefault();
+    try { const r = await api.post("/prazo/contas", novoPrazo); setPrazoContas(v=>[r.data,...v]); setPrazoCliente(r.data); setPrazoModal(false); setTab("prazo"); toast.success("Cliente selecionado. Escolha a mesa."); }
+    catch(e) { toast.error(e.response?.data?.detail || "Não foi possível cadastrar"); }
+  };
+  const openTable = async (t) => {
+    if (t.open_order_id) {
+      if (tab === "prazo") { toast.error("Mesa com comanda aberta. Selecione uma mesa livre para a venda a prazo."); return; }
+      navigate(`/comanda/${t.open_order_id}`); return;
+    }
+    if (tab === "prazo") {
+      if (!prazoCliente) { abrirPrazo(); return; }
       try { const r = await api.post("/orders", {table_id:t.id, items:[], quick_sale:false, prazo_conta_id:prazoCliente.id}); navigate(`/comanda/${r.data.id}`); }
       catch(e) { toast.error(e.response?.data?.detail || "Erro ao abrir venda a prazo"); }
       return;
@@ -126,3 +222,14 @@ function TableGroup({ title, tables, onOpen }) {
                   : "bg-emerald-950/30 border-emerald-500/40 hover:border-emerald-400 hover:-translate-y-0.5"
               }`}
             >
+              <span className="text-[10px] uppercase tracking-widest text-zinc-400">{t.kind === "bistro" ? "Bistrô" : "Mesa"}</span>
+              <span className="font-display text-3xl font-bold text-zinc-100 mono">{t.number}</span>
+              {occupied && <span className="mono text-xs text-amber-400">{formatBRL(t.total)}</span>}
+              {!occupied && <span className="text-[10px] text-emerald-400 uppercase tracking-widest">Livre</span>}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
