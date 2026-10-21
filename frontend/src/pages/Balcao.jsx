@@ -4,8 +4,26 @@ import api, { formatBRL } from "../lib/api";
 import { toast } from "sonner";
 import { Zap, Users as UsersIcon, X, User, WalletCards } from "lucide-react";
 
+// Cache em memoria: preserva as mesas ao sair e voltar para o Balcao.
+// Uma unica consulta de mesas pode estar em andamento por vez.
+let tablesCache = null;
+let tablesRequest = null;
+
+function fetchTables() {
+  if (!tablesRequest) {
+    tablesRequest = api.get("/tables")
+      .then(({ data }) => {
+        if (!Array.isArray(data)) throw new Error("Resposta invalida de mesas");
+        tablesCache = data;
+        return data;
+      })
+      .finally(() => { tablesRequest = null; });
+  }
+  return tablesRequest;
+}
+
 export default function Balcao() {
-  const [tables, setTables] = useState([]);
+  const [tables, setTables] = useState(() => tablesCache || []);
   const [cashiers, setCashiers] = useState([]);
   const [quickCashierId, setQuickCashierId] = useState("");
   const [tab, setTab] = useState("venda"); // venda | rapida
@@ -19,8 +37,42 @@ export default function Balcao() {
   const [tableCustomer, setTableCustomer] = useState(null); // table pending customer-name prompt
   const navigate = useNavigate();
 
-  const load = () => api.get("/tables").then((r) => setTables(r.data));
-  useEffect(() => { load(); const i = setInterval(load, 4000); return () => clearInterval(i); }, []);
+  useEffect(() => {
+    let active = true;
+    let timer;
+
+    const refresh = async () => {
+      if (!active || document.hidden) return;
+      try {
+        const data = await fetchTables();
+        if (active) setTables(data);
+      } catch (error) {
+        // Mantem as mesas ja exibidas quando a rede falha.
+        // Nao dispara novas tentativas em paralelo.
+        console.warn("Falha ao atualizar mesas:", error?.message || error);
+      } finally {
+        if (active) timer = setTimeout(refresh, 15000);
+      }
+    };
+
+    const onVisibilityChange = () => {
+      if (!document.hidden) {
+        clearTimeout(timer);
+        // Se ja existe consulta em andamento, fetchTables reutiliza a mesma.
+        refresh();
+      } else {
+        clearTimeout(timer);
+      }
+    };
+
+    refresh();
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, []);
   useEffect(() => { api.get("/cashiers").then(r => setCashiers(r.data.filter(c => c.status === "open"))).catch(() => {}); }, [showQuickModal]);
 
   const mesas1 = tables.filter((t) => t.kind === "mesa" && t.number <= 16);
