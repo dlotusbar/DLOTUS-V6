@@ -51,7 +51,7 @@ export default function Employees() {
   };
 
   return (
-    <div className="p-6 lg:p-10 pb-24 space-y-6">
+    <div className="min-w-0 p-3 sm:p-6 lg:p-10 pb-24 space-y-6">
       <h1 className="font-display text-3xl font-extrabold gold-text">Funcionários</h1>
       <div className="bg-[#121215] border border-white/5 rounded-2xl p-5">
         <h3 className="font-display text-lg font-bold mb-3">{editing ? "Editar" : "Novo Funcionário"}</h3>
@@ -83,8 +83,9 @@ export default function Employees() {
         </div>
       </div>
 
-      <div className="bg-[#121215] border border-white/5 rounded-2xl overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="min-w-0 max-w-full bg-[#121215] border border-white/5 rounded-2xl overflow-hidden">
+        <div className="w-full max-w-full overflow-x-auto overscroll-x-contain" style={{ WebkitOverflowScrolling: "touch" }} role="region" aria-label="Lista de funcionários: deslize para os lados para editar ou excluir" tabIndex={0}>
+        <table className="min-w-[760px] w-full text-sm">
           <thead className="bg-[#18181D] text-zinc-400 uppercase text-xs tracking-widest">
             <tr><th className="px-4 py-3 text-left">Nome</th><th className="px-4 py-3 text-left">Usuário</th><th className="px-4 py-3 text-left">Cargo</th><th className="px-4 py-3 text-left">Permissões</th><th className="px-4 py-3"></th></tr>
           </thead>
@@ -96,13 +97,14 @@ export default function Employees() {
                 <td className="px-4 py-3 text-[#D4AF37]">{u.role}</td>
                 <td className="px-4 py-3 text-xs text-zinc-500">{(u.permissions || []).slice(0, 4).join(", ")}{(u.permissions || []).length > 4 && ` +${u.permissions.length - 4}`}</td>
                 <td className="px-4 py-3 text-right">
-                  <button onClick={() => edit(u)} className="p-1.5 text-zinc-400 hover:text-[#D4AF37]"><Edit2 size={14} /></button>
-                  <button onClick={() => del(u)} className="p-1.5 text-zinc-400 hover:text-red-400"><Trash2 size={14} /></button>
+                  <button type="button" aria-label={`Editar ${u.name}`} onClick={() => edit(u)} className="inline-flex items-center justify-center min-w-10 min-h-10 p-2 text-zinc-400 hover:text-[#D4AF37]"><Edit2 size={14} /></button>
+                  <button type="button" aria-label={`Excluir ${u.name}`} onClick={() => del(u)} className="inline-flex items-center justify-center min-w-10 min-h-10 p-2 text-zinc-400 hover:text-red-400"><Trash2 size={14} /></button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );
