@@ -6,7 +6,15 @@ import { Zap, Users as UsersIcon, X, User, WalletCards } from "lucide-react";
 
 // Cache em memoria: preserva as mesas ao sair e voltar para o Balcao.
 // Uma unica consulta de mesas pode estar em andamento por vez.
-let tablesCache = null;
+// Apenas dados de exibicao em cache de sessao. Nao usar status antigo para vendas.
+const CACHE_KEY = "dlotus_balcao_mesas_visual_v2";
+function readVisualCache() {
+  try {
+    const data = JSON.parse(sessionStorage.getItem(CACHE_KEY) || "null");
+    return Array.isArray(data) ? data.filter(t => t && t.id && t.kind && Number.isFinite(Number(t.number))) : null;
+  } catch { return null; }
+}
+let tablesCache = readVisualCache();
 let tablesRequest = null;
 
 function fetchTables() {
@@ -15,6 +23,12 @@ function fetchTables() {
       .then(({ data }) => {
         if (!Array.isArray(data)) throw new Error("Resposta invalida de mesas");
         tablesCache = data;
+        try {
+          sessionStorage.setItem(CACHE_KEY, JSON.stringify(data.map(t => ({
+            id: t.id, kind: t.kind, number: t.number,
+            open_order_id: t.open_order_id, total: t.total
+          }))));
+        } catch { /* Cache opcional */ }
         return data;
       })
       .finally(() => { tablesRequest = null; });
@@ -24,6 +38,8 @@ function fetchTables() {
 
 export default function Balcao() {
   const [tables, setTables] = useState(() => tablesCache || []);
+  const [tablesReady, setTablesReady] = useState(false);
+  const [tablesError, setTablesError] = useState(false);
   const [cashiers, setCashiers] = useState([]);
   const [quickCashierId, setQuickCashierId] = useState("");
   const [tab, setTab] = useState("venda"); // venda | rapida
@@ -45,10 +61,11 @@ export default function Balcao() {
       if (!active || document.hidden) return;
       try {
         const data = await fetchTables();
-        if (active) setTables(data);
+        if (active) { setTables(data); setTablesReady(true); setTablesError(false); }
       } catch (error) {
         // Mantem as mesas ja exibidas quando a rede falha.
         // Nao dispara novas tentativas em paralelo.
+        if (active) setTablesError(true);
         console.warn("Falha ao atualizar mesas:", error?.message || error);
       } finally {
         if (active) timer = setTimeout(refresh, 15000);
@@ -89,6 +106,7 @@ export default function Balcao() {
     catch(e) { toast.error(e.response?.data?.detail || "Não foi possível cadastrar"); }
   };
   const openTable = async (t) => {
+    if (!tablesReady) { toast.info("Aguarde a confirmacao das mesas pelo servidor."); return; }
     if (t.open_order_id) {
       if (tab === "prazo") { toast.error("Mesa com comanda aberta. Selecione uma mesa livre para a venda a prazo."); return; }
       navigate(`/comanda/${t.open_order_id}`); return;
@@ -153,9 +171,10 @@ export default function Balcao() {
 
       {tab === "prazo" && prazoCliente && <p className="mb-4 p-3 bg-amber-950/40 rounded-lg text-amber-200">Venda a prazo para <b>{prazoCliente.cliente}</b>. Escolha uma mesa. <button className="underline ml-3" onClick={abrirPrazo}>Trocar cliente</button></p>}
       {prazoModal && <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"><section className="bg-[#121215] border border-amber-700 rounded-xl p-5 w-full max-w-lg max-h-[90vh] overflow-y-auto space-y-4"><h2 className="text-xl font-bold text-amber-300">Selecionar cliente — Venda a Prazo</h2><input className="w-full bg-zinc-900 p-3 rounded" placeholder="Buscar cliente ou telefone" value={prazoBusca} onChange={e=>setPrazoBusca(e.target.value)}/><div className="max-h-44 overflow-y-auto space-y-1">{prazoContas.filter(c=>(c.cliente+" "+c.telefone).toLowerCase().includes(prazoBusca.toLowerCase())).map(c=><button key={c.id} className="block w-full text-left p-2 bg-zinc-800 rounded hover:bg-zinc-700" onClick={()=>{setPrazoCliente(c);setTab("prazo");setPrazoModal(false);toast.success("Escolha a mesa para "+c.cliente)}}>{c.cliente} — {c.telefone}</button>)}</div><h3 className="font-bold">Cadastrar novo cliente</h3><form onSubmit={cadastrarPrazo} className="space-y-2">{[["cliente","Nome"],["telefone","Telefone"],["vencimento","Data de pagamento"]].map(([k,label])=><label key={k} className="block text-sm">{label}<input required={k!=="telefone"} type={k==="vencimento"?"date":"text"} className="block w-full bg-zinc-900 p-2 rounded" value={novoPrazo[k]} onChange={e=>setNovoPrazo({...novoPrazo,[k]:e.target.value})}/></label>)}<button className="bg-amber-500 text-black rounded px-4 py-2 font-bold">Cadastrar e selecionar</button></form><button className="text-zinc-300 underline" onClick={()=>setPrazoModal(false)}>Cancelar</button></section></div>}
-      <TableGroup title="Mesas 1-16" tables={mesas1} onOpen={openTable} />
-      <TableGroup title="Bistrôs 17-40" tables={bistros} onOpen={openTable} />
-      <TableGroup title="Mesas 41-47" tables={mesas2} onOpen={openTable} />
+      {!tablesReady && <p role="status" className="mb-4 rounded-lg border border-amber-500/40 bg-amber-950/30 p-3 text-amber-200 text-sm">{tablesError ? "Servidor demorando ou indisponivel. Tentando novamente; mesas bloqueadas ate confirmar o status atual." : "Exibindo mesas enquanto confirmamos a disponibilidade no servidor..."}</p>}
+      <TableGroup title="Mesas 1-16" tables={mesas1} onOpen={openTable} ready={tablesReady} placeholderStart={1} placeholderEnd={16} placeholderKind="mesa" />
+      <TableGroup title="Bistrôs 17-40" tables={bistros} onOpen={openTable} ready={tablesReady} placeholderStart={17} placeholderEnd={40} placeholderKind="bistro" />
+      <TableGroup title="Mesas 41-47" tables={mesas2} onOpen={openTable} ready={tablesReady} placeholderStart={41} placeholderEnd={47} placeholderKind="mesa" />
 
       {(showQuickModal || tableCustomer) && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto" onClick={() => { setShowQuickModal(false); setTableCustomer(null); }}>
@@ -204,28 +223,34 @@ export default function Balcao() {
   );
 }
 
-function TableGroup({ title, tables, onOpen }) {
+function TableGroup({ title, tables, onOpen, ready, placeholderStart, placeholderEnd, placeholderKind }) {
+  const displayed = tables.length ? tables : (!ready ? Array.from({length:placeholderEnd-placeholderStart+1}, (_,i)=>({id:`placeholder-${placeholderKind}-${i}`,number:placeholderStart+i,kind:placeholderKind,_placeholder:true})) : []);
   return (
     <div className="mb-8">
       <h3 className="text-xs uppercase tracking-widest text-zinc-400 mb-3">{title}</h3>
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
-        {tables.map((t) => {
+        {displayed.map((t) => {
           const occupied = !!t.open_order_id;
+          const waiting = !ready || t._placeholder;
           return (
             <button
               key={t.id}
               data-testid={`table-${t.kind}-${t.number}`}
               onClick={() => onOpen(t)}
+              disabled={waiting}
+              aria-label={`${t.kind === "bistro" ? "Bistrô" : "Mesa"} ${t.number}${waiting ? " - aguardando servidor" : ""}`}
               className={`aspect-square rounded-xl border-2 flex flex-col items-center justify-center transition-all ${
-                occupied
+                waiting
+                  ? "bg-zinc-900/60 border-zinc-600/40 opacity-70 cursor-wait"
+                  : occupied
                   ? "bg-amber-950/40 border-amber-500/60 hover:border-amber-400 hover:-translate-y-0.5"
                   : "bg-emerald-950/30 border-emerald-500/40 hover:border-emerald-400 hover:-translate-y-0.5"
               }`}
             >
               <span className="text-[10px] uppercase tracking-widest text-zinc-400">{t.kind === "bistro" ? "Bistrô" : "Mesa"}</span>
               <span className="font-display text-3xl font-bold text-zinc-100 mono">{t.number}</span>
-              {occupied && <span className="mono text-xs text-amber-400">{formatBRL(t.total)}</span>}
-              {!occupied && <span className="text-[10px] text-emerald-400 uppercase tracking-widest">Livre</span>}
+              {!waiting && occupied && <span className="mono text-xs text-amber-400">{formatBRL(t.total)}</span>}
+              {waiting ? <span className="text-[10px] text-amber-300">Aguarde</span> : !occupied && <span className="text-[10px] text-emerald-400 uppercase tracking-widest">Livre</span>}
             </button>
           );
         })}
