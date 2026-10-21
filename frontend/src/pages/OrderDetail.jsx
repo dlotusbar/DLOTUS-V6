@@ -282,6 +282,44 @@ export default function OrderDetail() {
           onPrint={async () => {
             setPrinting(true);
             try {
+              // No navegador, usar a mesma impressao termica 80 mm da Portaria.
+              // Nao chamar a fila do backend: ela nao alcança a USB local no Chrome.
+              if (!isDesktop()) {
+                const safe = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+                const items = (receiptOrder.items || []).filter((i) => i.status !== "cancelled");
+                const total = Number(receiptOrder.total ?? items.reduce((s, i) => s + Number(i.subtotal || 0), 0));
+                const payments = receiptOrder.payments || [];
+                const paid = payments.reduce((s, p) => s + Number(p.amount || 0), 0);
+                const hasCash = payments.some((p) => p.method === "dinheiro");
+                const line = (a,b) => `<div class="line"><span>${safe(a)}</span><strong>${safe(b)}</strong></div>`;
+                const html = `<!doctype html><html><head><meta charset="utf-8"><title>Via da venda</title><style>
+                  @page{size:80mm auto;margin:0}html,body{margin:0;padding:0;background:white;color:black;font:12px Arial,sans-serif}
+                  .receipt{box-sizing:border-box;width:80mm;padding:4mm;overflow-wrap:anywhere}
+                  h2{text-align:center;font-size:16px;margin:0 0 5px}h3{text-align:center;font-size:12px;margin:0 0 10px}
+                  .line{display:flex;justify-content:space-between;gap:6px;padding:3px 0}.line span{min-width:0;overflow-wrap:anywhere}.line strong{text-align:right;white-space:nowrap}
+                  hr{border:0;border-top:1px dashed black;margin:9px 0}.big{font-size:16px;font-weight:bold}
+                </style></head><body><div class="receipt">
+                  <h2>D'LOTUS LOUNGE BAR</h2><h3>VIA DA VENDA - CAIXA</h3><hr>
+                  ${line("Pedido", "#" + String(receiptOrder.id || "").slice(0,8).toUpperCase())}
+                  ${line("Local", receiptOrder.table_label || "Balcao")}
+                  ${line("Data", formatDate(receiptOrder.closed_at || receiptOrder.created_at))}
+                  <hr><strong>ITENS</strong>
+                  ${items.map(i => line(`${i.quantity}x ${i.product_name}`,formatBRL(i.subtotal))).join("")}
+                  <hr><div class="big">${line("TOTAL",formatBRL(total))}</div><hr>
+                  <strong>PAGAMENTO</strong>${payments.map(p => line(String(p.method || "").toUpperCase(),formatBRL(p.amount))).join("")}
+                  ${hasCash && paid > total ? line("Recebido",formatBRL(paid)) + line("TROCO",formatBRL(paid-total)) : ""}
+                  <hr><div style="text-align:center">* OBRIGADO! VOLTE SEMPRE *</div>
+                </div></body></html>`;
+                const frame = document.createElement("iframe");
+                frame.style.cssText = "position:fixed;width:0;height:0;border:0;opacity:0";
+                document.body.appendChild(frame);
+                const doc = frame.contentDocument;
+                doc.open(); doc.write(html); doc.close();
+                frame.contentWindow.focus();
+                frame.contentWindow.print();
+                setTimeout(() => frame.remove(), 60000);
+                return;
+              }
               const { data } = await api.post(`/orders/${receiptOrder.id}/print-receipt`);
               if (data?.printer?.connection_type === "windows" && isDesktop() && data?.printer?.windows_printer_name) {
                 const r = await silentPrintReceipt(data.printer.windows_printer_name, receiptOrder);
