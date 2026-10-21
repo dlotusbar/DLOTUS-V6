@@ -1,23 +1,11 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api, { formatBRL } from "../lib/api";
 import { toast } from "sonner";
 import { Zap, Users as UsersIcon, X, User, WalletCards } from "lucide-react";
 
-// Cache apenas nesta aba do navegador. Os dados são revalidados antes de abrir comandas.
-const CACHE_KEY = "dlotus_balcao_mesas_v1";
-const readCachedTables = () => {
-  try {
-    const parsed = JSON.parse(sessionStorage.getItem(CACHE_KEY) || "null");
-    return Array.isArray(parsed) ? parsed : [];
-  } catch { return []; }
-};
-
 export default function Balcao() {
-  const [tables, setTables] = useState(readCachedTables);
-  const [tablesReady, setTablesReady] = useState(false);
-  const [tablesError, setTablesError] = useState(false);
-  const requestInFlight = useRef(false);
+  const [tables, setTables] = useState([]);
   const [cashiers, setCashiers] = useState([]);
   const [quickCashierId, setQuickCashierId] = useState("");
   const [tab, setTab] = useState("venda"); // venda | rapida
@@ -31,31 +19,8 @@ export default function Balcao() {
   const [tableCustomer, setTableCustomer] = useState(null); // table pending customer-name prompt
   const navigate = useNavigate();
 
-  const load = async () => {
-    if (requestInFlight.current) return;
-    requestInFlight.current = true;
-    try {
-      const { data } = await api.get("/tables");
-      if (!Array.isArray(data)) throw new Error("Resposta de mesas inválida");
-      setTables(data);
-      setTablesReady(true);
-      setTablesError(false);
-      try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch {}
-    } catch {
-      setTablesError(true);
-      setTablesReady(false);
-    } finally {
-      requestInFlight.current = false;
-    }
-  };
-  useEffect(() => {
-    let timer;
-    const refresh = () => { if (!document.hidden) load(); };
-    refresh();
-    timer = setInterval(refresh, 6000);
-    document.addEventListener("visibilitychange", refresh);
-    return () => { clearInterval(timer); document.removeEventListener("visibilitychange", refresh); };
-  }, []);
+  const load = () => api.get("/tables").then((r) => setTables(r.data));
+  useEffect(() => { load(); const i = setInterval(load, 4000); return () => clearInterval(i); }, []);
   useEffect(() => { api.get("/cashiers").then(r => setCashiers(r.data.filter(c => c.status === "open"))).catch(() => {}); }, [showQuickModal]);
 
   const mesas1 = tables.filter((t) => t.kind === "mesa" && t.number <= 16);
@@ -72,7 +37,6 @@ export default function Balcao() {
     catch(e) { toast.error(e.response?.data?.detail || "Não foi possível cadastrar"); }
   };
   const openTable = async (t) => {
-    if (!tablesReady) { toast.error("Aguarde a atualização das mesas para abrir a comanda."); return; }
     if (t.open_order_id) {
       if (tab === "prazo") { toast.error("Mesa com comanda aberta. Selecione uma mesa livre para a venda a prazo."); return; }
       navigate(`/comanda/${t.open_order_id}`); return;
@@ -137,13 +101,9 @@ export default function Balcao() {
 
       {tab === "prazo" && prazoCliente && <p className="mb-4 p-3 bg-amber-950/40 rounded-lg text-amber-200">Venda a prazo para <b>{prazoCliente.cliente}</b>. Escolha uma mesa. <button className="underline ml-3" onClick={abrirPrazo}>Trocar cliente</button></p>}
       {prazoModal && <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"><section className="bg-[#121215] border border-amber-700 rounded-xl p-5 w-full max-w-lg max-h-[90vh] overflow-y-auto space-y-4"><h2 className="text-xl font-bold text-amber-300">Selecionar cliente — Venda a Prazo</h2><input className="w-full bg-zinc-900 p-3 rounded" placeholder="Buscar cliente ou telefone" value={prazoBusca} onChange={e=>setPrazoBusca(e.target.value)}/><div className="max-h-44 overflow-y-auto space-y-1">{prazoContas.filter(c=>(c.cliente+" "+c.telefone).toLowerCase().includes(prazoBusca.toLowerCase())).map(c=><button key={c.id} className="block w-full text-left p-2 bg-zinc-800 rounded hover:bg-zinc-700" onClick={()=>{setPrazoCliente(c);setTab("prazo");setPrazoModal(false);toast.success("Escolha a mesa para "+c.cliente)}}>{c.cliente} — {c.telefone}</button>)}</div><h3 className="font-bold">Cadastrar novo cliente</h3><form onSubmit={cadastrarPrazo} className="space-y-2">{[["cliente","Nome"],["telefone","Telefone"],["vencimento","Data de pagamento"]].map(([k,label])=><label key={k} className="block text-sm">{label}<input required={k!=="telefone"} type={k==="vencimento"?"date":"text"} className="block w-full bg-zinc-900 p-2 rounded" value={novoPrazo[k]} onChange={e=>setNovoPrazo({...novoPrazo,[k]:e.target.value})}/></label>)}<button className="bg-amber-500 text-black rounded px-4 py-2 font-bold">Cadastrar e selecionar</button></form><button className="text-zinc-300 underline" onClick={()=>setPrazoModal(false)}>Cancelar</button></section></div>}
-      {!tablesReady && <div role="status" className="mb-4 rounded-xl border border-amber-500/40 bg-amber-950/30 p-3 text-sm text-amber-200 flex items-center justify-between gap-3">
-        <span>{tablesError ? "Não foi possível atualizar as mesas no servidor. Os dados exibidos podem estar desatualizados." : tables.length ? "Mostrando mesas salvas nesta aba. Conferindo situação atual no servidor…" : "Carregando mesas do servidor…"}</span>
-        {tablesError && <button type="button" className="rounded bg-amber-500 px-3 py-2 font-bold text-black" onClick={load}>Tentar novamente</button>}
-      </div>}
-      <TableGroup title="Mesas 1-16" tables={mesas1} onOpen={openTable} disabled={!tablesReady} />
-      <TableGroup title="Bistrôs 17-40" tables={bistros} onOpen={openTable} disabled={!tablesReady} />
-      <TableGroup title="Mesas 41-47" tables={mesas2} onOpen={openTable} disabled={!tablesReady} />
+      <TableGroup title="Mesas 1-16" tables={mesas1} onOpen={openTable} />
+      <TableGroup title="Bistrôs 17-40" tables={bistros} onOpen={openTable} />
+      <TableGroup title="Mesas 41-47" tables={mesas2} onOpen={openTable} />
 
       {(showQuickModal || tableCustomer) && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto" onClick={() => { setShowQuickModal(false); setTableCustomer(null); }}>
@@ -192,7 +152,7 @@ export default function Balcao() {
   );
 }
 
-function TableGroup({ title, tables, onOpen, disabled = false }) {
+function TableGroup({ title, tables, onOpen }) {
   return (
     <div className="mb-8">
       <h3 className="text-xs uppercase tracking-widest text-zinc-400 mb-3">{title}</h3>
@@ -204,9 +164,7 @@ function TableGroup({ title, tables, onOpen, disabled = false }) {
               key={t.id}
               data-testid={`table-${t.kind}-${t.number}`}
               onClick={() => onOpen(t)}
-              disabled={disabled}
-              title={disabled ? "Aguardando confirmação do servidor" : undefined}
-              className={`aspect-square rounded-xl border-2 flex flex-col items-center justify-center transition-all ${disabled ? "opacity-60 cursor-wait " : ""}${
+              className={`aspect-square rounded-xl border-2 flex flex-col items-center justify-center transition-all ${
                 occupied
                   ? "bg-amber-950/40 border-amber-500/60 hover:border-amber-400 hover:-translate-y-0.5"
                   : "bg-emerald-950/30 border-emerald-500/40 hover:border-emerald-400 hover:-translate-y-0.5"
