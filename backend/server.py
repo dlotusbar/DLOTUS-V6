@@ -1288,7 +1288,7 @@ async def add_items(oid: str, data: AddItemsIn, user: dict = Depends(require_per
 
 @api.put("/orders/{oid}/items/{item_id}")
 async def update_item(oid: str, item_id: str, data: UpdateItemIn, user: dict = Depends(get_current_user)):
-    if str(user.get("role", "")).lower() == "atendente" and data.status is not None:
+    if str(user.get("role") or "").strip().lower() == "atendente" and data.status is not None:
         raise HTTPException(status_code=403, detail="Atendente não pode alterar o status dos pedidos")
     order = await db.orders.find_one({"id": oid})
     if not order:
@@ -1539,6 +1539,36 @@ async def kitchen_queue(kind: str, user: dict = Depends(get_current_user)):
             if match:
                 result.append({**it, "order_id": o["id"], "table_label": o["table_label"]})
     return result
+
+
+@api.get("/kitchen/bar/stats")
+async def bar_stats(user: dict = Depends(get_current_user)):
+    """Contador de bebidas entregues hoje: total, pagas e cortesias."""
+    bar_printers = await db.printers.find({"kind": "bar"}).to_list(100)
+    bar_printer_ids = {p["id"] for p in bar_printers}
+
+    today_start = datetime.now(timezone.utc).date().isoformat()
+    orders = await db.orders.find({
+        "$or": [
+            {"status": "open"},
+            {"status": "paid", "closed_at": {"$gte": today_start}},
+        ]
+    }, {"_id": 0}).to_list(5000)
+
+    total = paid = cortesia = 0
+    for order in orders:
+        for item in order.get("items", []):
+            if item.get("status") != "delivered":
+                continue
+            if item.get("printer_id") not in bar_printer_ids:
+                continue
+            qty = int(item.get("quantity", 0) or 0)
+            total += qty
+            if item.get("cortesia"):
+                cortesia += qty
+            else:
+                paid += qty
+    return {"total": total, "paid": paid, "cortesia": cortesia}
 
 
 @api.get("/kitchen/rosh/stats")

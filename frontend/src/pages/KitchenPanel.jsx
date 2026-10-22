@@ -57,7 +57,7 @@ function KitchenPanel({ kind, title, icon: TitleIcon, hideHeader }) {
 
   return (
     <div className="p-6 lg:p-10 pb-24">
-      <PedidoSirene kind={kind} items={items} />
+      {!somenteLeitura && <PedidoSirene kind={kind} items={items} />}
       <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
         {!hideHeader && (
           <div className="flex items-center gap-3">
