@@ -22,7 +22,7 @@ const fmtDuration = (s) => {
 
 function KitchenPanel({ kind, title, icon: TitleIcon, hideHeader }) {
   const { user } = useAuth();
-  const somenteLeitura = String(user?.role || "").toLowerCase() === "atendente";
+  const isAttendant = String(user?.role || "").trim().toLowerCase() === "atendente";
   const [items, setItems] = useState([]);
   const [tab, setTab] = useState("queue"); // queue | history
   const [history, setHistory] = useState([]);
@@ -38,7 +38,7 @@ function KitchenPanel({ kind, title, icon: TitleIcon, hideHeader }) {
   }, [kind, tab]);
 
   const act = async (it, status) => {
-    if (somenteLeitura) return;
+    if (isAttendant) { toast.error("Atendente pode apenas visualizar pedidos."); return; }
     try {
       await api.put(`/orders/${it.order_id}/items/${it.id}`, { status });
       toast.success(status === "delivered" ? (kind === "rosh" ? "Rosh enviado!" : "Item entregue!") : "Em produção");
@@ -57,7 +57,7 @@ function KitchenPanel({ kind, title, icon: TitleIcon, hideHeader }) {
 
   return (
     <div className="p-6 lg:p-10 pb-24">
-      {!somenteLeitura && <PedidoSirene kind={kind} items={items} />}
+      {!isAttendant && <PedidoSirene kind={kind} items={items} />}
       <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
         {!hideHeader && (
           <div className="flex items-center gap-3">
@@ -69,7 +69,6 @@ function KitchenPanel({ kind, title, icon: TitleIcon, hideHeader }) {
           </div>
         )}
         {hideHeader && <div />}
-        {somenteLeitura && <span className="text-xs text-sky-300">Somente visualização — atendente</span>}
         <div className="flex bg-[#18181D] rounded-lg p-1 border border-white/5">
           <button
             onClick={() => setTab("queue")}
@@ -107,7 +106,7 @@ function KitchenPanel({ kind, title, icon: TitleIcon, hideHeader }) {
                         {it.quantity}× {it.product_name}
                       </div>
                       {it.note && <div className="text-xs text-zinc-500 mt-1">Obs: {it.note}</div>}
-                      {!somenteLeitura && <div className="flex gap-2 mt-3">
+                      {!isAttendant && <div className="flex gap-2 mt-3">
                         {status === "waiting" && (
                           <button onClick={() => act(it, "producing")} data-testid={`start-${it.id}`} className="flex-1 py-2 bg-amber-900/40 text-amber-300 rounded-lg text-sm font-medium flex items-center justify-center gap-1 hover:bg-amber-800/40"><Play size={12} /> Iniciar</button>
                         )}
