@@ -34,6 +34,9 @@ export default function OrderDetail() {
   const [search, setSearch] = useState("");
   const [showPay, setShowPay] = useState(false);
   const [editItem, setEditItem] = useState(null);
+  const [productToAdd, setProductToAdd] = useState(null);
+  const [itemNote, setItemNote] = useState("");
+  const [addingItem, setAddingItem] = useState(false);
   const [receiptOrder, setReceiptOrder] = useState(null);
   const [printing, setPrinting] = useState(false);
   const [categoryOrder, setCategoryOrder] = useState(() => readOrder("dlotus-v6-category-order"));
@@ -98,12 +101,16 @@ export default function OrderDetail() {
 
   if (!order) return <div className="p-8 text-zinc-500">Carregando...</div>;
 
-  const addItem = async (prod) => {
+  const addItem = async (prod, note = "") => {
+    if (addingItem) return;
+    setAddingItem(true);
     try {
-      const { data } = await api.post(`/orders/${orderId}/items`, { items: [{ product_id: prod.id, quantity: 1 }] });
+      const { data } = await api.post(`/orders/${orderId}/items`, { items: [{ product_id: prod.id, quantity: 1, note: note.trim() }] });
       setOrder(data);
+      setProductToAdd(null); setItemNote("");
       toast.success(order.prazo_conta_id ? `${prod.name} adicionado. Envio após autorizar crédito.` : `${prod.name} enviado para produção`);
     } catch (e) { toast.error(e.response?.data?.detail || "Erro"); }
+    finally { setAddingItem(false); }
   };
 
   const finalizarPrazo = async () => {
@@ -191,7 +198,7 @@ export default function OrderDetail() {
               onDragEnd={() => { dragRef.current = null; }}
               onPointerDown={(e) => startPointer(e, "product", p.id)}
               onPointerMove={movePointer} onPointerUp={endPointer} onPointerCancel={endPointer}
-              onClick={() => { if (!suppressClickRef.current) addItem(p); }}
+              onClick={() => { if (!suppressClickRef.current) { setProductToAdd(p); setItemNote(""); } }}
               className="bg-[#18181D] border border-white/5 rounded-xl p-4 text-left hover:border-[#D4AF37]/60 hover:-translate-y-0.5 transition-all group"
             >
               <div className="font-medium text-zinc-100 line-clamp-2 min-h-[2.5rem]">{p.name}</div>
@@ -270,6 +277,23 @@ export default function OrderDetail() {
         </div>
       </aside>
 
+       {productToAdd && (
+         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => { if (!addingItem) setProductToAdd(null); }}>
+           <div className="w-full max-w-md rounded-2xl border border-[#D4AF37]/40 bg-[#121215] p-5 space-y-4" onClick={e => e.stopPropagation()}>
+             <h3 className="text-lg font-bold text-white">Adicionar {productToAdd.name}</h3>
+             <label className="block text-sm text-zinc-300">Observação do produto (opcional)
+               <textarea value={itemNote} onChange={e => setItemNote(e.target.value)} rows={3} maxLength={500} autoFocus
+                 placeholder="Ex.: Combo com 2 Red Bull cereja e 1 melancia"
+                 className="mt-2 w-full rounded-lg border border-white/20 bg-[#0A0A0C] p-3 text-white outline-none focus:border-[#D4AF37]" />
+             </label>
+             <p className="text-xs text-zinc-400">A observação acompanha este item no pedido enviado ao Bar/Rosh.</p>
+             <div className="flex gap-2">
+               <button disabled={addingItem} onClick={() => setProductToAdd(null)} className="flex-1 rounded-lg bg-zinc-800 p-3 text-white">Cancelar</button>
+               <button disabled={addingItem} onClick={() => addItem(productToAdd, itemNote)} className="flex-1 rounded-lg bg-[#D4AF37] p-3 font-bold text-black disabled:opacity-50">{addingItem ? "Enviando..." : "ADICIONAR AO PEDIDO"}</button>
+             </div>
+           </div>
+         </div>
+       )}
       {editItem && (
         <PriceEditModal item={editItem} onClose={() => setEditItem(null)} onSave={(price) => { updateItem(editItem.id, { override_price: price }); setEditItem(null); }} />
       )}

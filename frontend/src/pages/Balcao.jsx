@@ -57,6 +57,7 @@ export default function Balcao() {
   const [prazoBusca, setPrazoBusca] = useState("");
   const [novoPrazo, setNovoPrazo] = useState({cliente:"", telefone:"", vencimento:""});
   const [tableCustomer, setTableCustomer] = useState(null); // table pending customer-name prompt
+  const [openingTable, setOpeningTable] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -138,12 +139,15 @@ export default function Balcao() {
 
   const confirmOpenTable = async () => {
     const t = tableCustomer;
-    if (!t) return;
+    if (!t || openingTable) return;
+    if (!customerName.trim()) { toast.error("Informe o nome do cliente para abrir a mesa."); return; }
+    setOpeningTable(true);
     try {
-      const { data } = await api.post("/orders", { table_id: t.id, items: [], quick_sale: false, customer_name: customerName.trim() || null });
+      const { data } = await api.post("/orders", { table_id: t.id, items: [], quick_sale: false, customer_name: customerName.trim() });
       setTableCustomer(null); setCustomerName("");
       navigate(`/comanda/${data.id}`);
     } catch (e) { toast.error(e.response?.data?.detail || "Erro ao abrir mesa"); }
+    finally { setOpeningTable(false); }
   };
 
   const confirmQuickSale = async () => {
@@ -207,7 +211,7 @@ export default function Balcao() {
                 {cashiers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </label>}
-            <label className="text-xs uppercase tracking-widest text-[#D4AF37] block mb-2 font-bold">Nome do cliente (opcional)</label>
+            <label className="text-xs uppercase tracking-widest text-[#D4AF37] block mb-2 font-bold">Nome do cliente {tableCustomer ? "(obrigatório)" : "(opcional)"}</label>
             <input
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
@@ -226,7 +230,8 @@ export default function Balcao() {
               <button
                 onClick={tableCustomer ? confirmOpenTable : confirmQuickSale}
                 data-testid="confirm-open-order"
-                className="flex-1 py-2.5 bg-[#D4AF37] text-black rounded-lg font-bold"
+                disabled={!!tableCustomer && (openingTable || !customerName.trim())}
+                className="flex-1 py-2.5 bg-[#D4AF37] text-black rounded-lg font-bold disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {tableCustomer ? "Abrir Comanda" : "Iniciar Venda"}
               </button>
