@@ -48,6 +48,14 @@ function Shell({ children }) {
   const logoSrc = settings.general?.logo_main || "/dlotus-logo-sm.png";
   const logoSize = settings.menu?.logo_size ?? 180;
   const paginaInicial = primeiraPaginaPermitida(can) || "/dashboard";
+  // A ordem configurada não altera as permissões nem as rotas.
+  const ordemSalva = Array.isArray(settings.menu?.order) ? settings.menu.order : [];
+  const itensOrdenados = [...navItems].sort((a, b) => {
+    const posA = ordemSalva.indexOf(a.to);
+    const posB = ordemSalva.indexOf(b.to);
+    return (posA < 0 ? navItems.indexOf(a) + ordemSalva.length : posA) -
+           (posB < 0 ? navItems.indexOf(b) + ordemSalva.length : posB);
+  });
 
   return (
     <div className="min-h-screen flex" style={{ background: "var(--dl-body-bg)", color: "var(--dl-text-primary)" }}>
@@ -57,7 +65,7 @@ function Shell({ children }) {
           {settings.menu?.show_name && <p className="text-[10px] tracking-[0.3em] text-zinc-500 uppercase mt-2 text-center">PDV · {settings.general?.menu_title}</p>}
         </Link>
         <nav className="flex-1 space-y-1 overflow-y-auto">
-          {navItems.filter((i) => can(i.perm)).map((i) => {
+          {itensOrdenados.filter((i) => can(i.perm)).map((i) => {
             const Icon = i.icon;
             const active = location.pathname.startsWith(i.to);
             return (
@@ -99,7 +107,7 @@ function Shell({ children }) {
           <button type="button" aria-label="Fechar menu" onClick={() => setMobileMenuOpen(false)} className="p-2 rounded-lg text-white"><X size={24}/></button>
         </div>
         <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
-          {navItems.filter(i => can(i.perm)).map(i => {
+          {itensOrdenados.filter(i => can(i.perm)).map(i => {
             const Icon = i.icon;
             const active = location.pathname.startsWith(i.to);
             return <Link key={i.to} to={i.to} onClick={() => setMobileMenuOpen(false)} className={`flex items-center gap-3 rounded-xl px-4 py-3 min-h-[48px] text-sm ${active ? "bg-sky-500/15 text-sky-300" : "text-zinc-200 hover:bg-white/10"}`}><Icon size={20}/>{i.label}</Link>;
@@ -117,7 +125,7 @@ function Shell({ children }) {
         {children}
         {/* Mobile bottom nav */}
         <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-[#121215] border-t border-[#D4AF37]/15 flex overflow-x-auto mobile-bottom-nav">
-          {navItems.filter((i) => can(i.perm)).slice(0, 5).map((i) => {
+          {itensOrdenados.filter((i) => can(i.perm)).slice(0, 5).map((i) => {
             const Icon = i.icon;
             const active = location.pathname.startsWith(i.to);
             return (
