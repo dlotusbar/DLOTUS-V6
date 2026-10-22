@@ -1539,6 +1539,36 @@ async def kitchen_queue(kind: str, user: dict = Depends(get_current_user)):
     return result
 
 
+@api.get("/kitchen/bar/stats")
+async def bar_stats(user: dict = Depends(get_current_user)):
+    """Contador de bebidas entregues hoje: total, pagas e cortesias."""
+    bar_printers = await db.printers.find({"kind": "bar"}).to_list(100)
+    bar_printer_ids = {p["id"] for p in bar_printers}
+
+    today_start = datetime.now(timezone.utc).date().isoformat()
+    orders = await db.orders.find({
+        "$or": [
+            {"status": "open"},
+            {"status": "paid", "closed_at": {"$gte": today_start}},
+        ]
+    }, {"_id": 0}).to_list(5000)
+
+    total = paid = cortesia = 0
+    for order in orders:
+        for item in order.get("items", []):
+            if item.get("status") != "delivered":
+                continue
+            if item.get("printer_id") not in bar_printer_ids:
+                continue
+            qty = int(item.get("quantity", 0) or 0)
+            total += qty
+            if item.get("cortesia"):
+                cortesia += qty
+            else:
+                paid += qty
+    return {"total": total, "paid": paid, "cortesia": cortesia}
+
+
 @api.get("/kitchen/rosh/stats")
 async def rosh_stats(user: dict = Depends(get_current_user)):
     """Contador de Rosh entregues hoje: total, pagas (não cortesia) e cortesia."""
