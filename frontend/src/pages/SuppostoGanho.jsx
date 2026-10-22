@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import api, { formatBRL } from "../lib/api";
-import { Users, Beer, DoorOpen, Flame, TrendingUp, Package, Wallet, Info } from "lucide-react";
+import { Users, Beer, DoorOpen, Flame, TrendingUp, Package, Wallet, Info, Eye, EyeOff } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from "recharts";
 
 const PERIODS = [
@@ -16,6 +16,8 @@ export default function SuppostoGanho() {
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
   const [data, setData] = useState(null);
+  const [showMoney, setShowMoney] = useState(false);
+  const money = (v) => showMoney ? formatBRL(v) : "R$ ••••";
 
   const load = () => {
     const q = new URLSearchParams();
@@ -33,10 +35,10 @@ export default function SuppostoGanho() {
   if (!data) return <div className="p-8 text-zinc-500">Carregando...</div>;
 
   const chartData = [
-    { name: "Faturamento Portaria", valor: data.portaria.revenue, color: "#A855F7" },
-    { name: "Faturamento Produtos", valor: data.produtos.revenue, color: "#D4AF37" },
-    { name: "Lucro Produtos", valor: data.produtos.profit, color: "#10B981" },
-    { name: "Suposto Ganho", valor: data.suposto_ganho_total, color: "#F3E5AB" },
+    { name: "Faturamento Portaria", valor: showMoney ? data.portaria.revenue : 0, color: "#A855F7" },
+    { name: "Faturamento Produtos", valor: showMoney ? data.produtos.revenue : 0, color: "#D4AF37" },
+    { name: "Lucro Produtos", valor: showMoney ? data.produtos.profit : 0, color: "#10B981" },
+    { name: "Suposto Ganho", valor: showMoney ? data.suposto_ganho_total : 0, color: "#F3E5AB" },
   ];
 
   return (
@@ -47,6 +49,7 @@ export default function SuppostoGanho() {
           <h1 className="font-display text-3xl md:text-5xl font-extrabold gold-text">Suposto Ganho</h1>
         </div>
         <div className="flex flex-wrap gap-2 items-center">
+          <button type="button" onClick={() => setShowMoney(v => !v)} aria-label={showMoney ? "Ocultar valores do Suposto Ganho" : "Mostrar valores do Suposto Ganho"} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/20 bg-[#18181D] text-zinc-100 text-sm">{showMoney ? <EyeOff size={18}/> : <Eye size={18}/>} {showMoney ? "Ocultar valores" : "Mostrar valores"}</button>
           {PERIODS.map((p) => (
             <button key={p.id} data-testid={`period-${p.id}`} onClick={() => setPeriod(p.id)} className={`px-3 py-2 rounded-lg text-xs transition ${period === p.id ? "bg-[#D4AF37] text-black font-bold" : "bg-[#18181D] text-zinc-400 hover:text-zinc-100"}`}>
               {p.label}
@@ -66,10 +69,10 @@ export default function SuppostoGanho() {
         <div className="flex items-start justify-between flex-wrap gap-6">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-[#D4AF37] mb-2">🔥 Suposto Ganho da Noite</p>
-            <p className="mono text-5xl md:text-7xl font-extrabold gold-text">{formatBRL(data.suposto_ganho_total)}</p>
+            <p className="mono text-5xl md:text-7xl font-extrabold gold-text">{money(data.suposto_ganho_total)}</p>
             <div className="flex gap-4 mt-3 text-sm flex-wrap">
-              <span className="text-zinc-300">Faturamento total: <span className="mono text-zinc-100 font-bold">{formatBRL(data.faturamento_total)}</span></span>
-              <span className="text-zinc-300">Margem: <span className="mono text-emerald-400 font-bold">{data.margem_percent}%</span></span>
+              <span className="text-zinc-300">Faturamento total: <span className="mono text-zinc-100 font-bold">{money(data.faturamento_total)}</span></span>
+              <span className="text-zinc-300">Margem: <span className="mono text-emerald-400 font-bold">{showMoney ? `${data.margem_percent}%` : "••••"}</span></span>
             </div>
           </div>
           <div className="text-right">
@@ -77,12 +80,12 @@ export default function SuppostoGanho() {
             <div className="flex gap-4 mt-2">
               <div>
                 <p className="text-[10px] text-purple-300 uppercase tracking-widest">Portaria</p>
-                <p className="mono text-xl font-bold text-purple-200">{formatBRL(data.portaria.profit)}</p>
+                <p className="mono text-xl font-bold text-purple-200">{money(data.portaria.profit)}</p>
               </div>
               <div className="text-zinc-600 text-2xl mt-3">+</div>
               <div>
                 <p className="text-[10px] text-emerald-300 uppercase tracking-widest">Produtos</p>
-                <p className="mono text-xl font-bold text-emerald-200">{formatBRL(data.produtos.profit)}</p>
+                <p className="mono text-xl font-bold text-emerald-200">{money(data.produtos.profit)}</p>
               </div>
             </div>
           </div>
@@ -98,10 +101,10 @@ export default function SuppostoGanho() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-        <BigCard icon={DoorOpen} label="🎟️ Faturamento Portaria" value={formatBRL(data.portaria.revenue)} subtitle="Entradas na porta" tone="purple" />
-        <BigCard icon={Beer} label="🍾 Faturamento Produtos" value={formatBRL(data.produtos.revenue)} subtitle={`Custo: ${formatBRL(data.produtos.cost)}`} tone="gold" />
-        <BigCard icon={Wallet} label="💰 Lucro Portaria" value={formatBRL(data.portaria.profit)} subtitle="100% (sem custo)" tone="purple-strong" />
-        <BigCard icon={Package} label="📦 Lucro Produtos" value={formatBRL(data.produtos.profit)} subtitle={`Margem ${data.produtos.revenue ? ((data.produtos.profit / data.produtos.revenue) * 100).toFixed(1) : 0}%`} tone="emerald" />
+        <BigCard icon={DoorOpen} label="🎟️ Faturamento Portaria" value={money(data.portaria.revenue)} subtitle="Entradas na porta" tone="purple" />
+        <BigCard icon={Beer} label="🍾 Faturamento Produtos" value={money(data.produtos.revenue)} subtitle={`Custo: ${money(data.produtos.cost)}`} tone="gold" />
+        <BigCard icon={Wallet} label="💰 Lucro Portaria" value={money(data.portaria.profit)} subtitle="100% (sem custo)" tone="purple-strong" />
+        <BigCard icon={Package} label="📦 Lucro Produtos" value={money(data.produtos.profit)} subtitle={showMoney ? `Margem ${data.produtos.revenue ? ((data.produtos.profit / data.produtos.revenue) * 100).toFixed(1) : 0}%` : "Margem ••••"} tone="emerald" />
       </div>
 
       {/* GRÁFICO */}
@@ -111,11 +114,12 @@ export default function SuppostoGanho() {
           <BarChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#2a2a30" />
             <XAxis dataKey="name" tick={{ fill: "#A1A1AA", fontSize: 11 }} />
-            <YAxis tick={{ fill: "#A1A1AA", fontSize: 11 }} tickFormatter={(v) => `R$${v}`} />
+            <YAxis tick={{ fill: "#A1A1AA", fontSize: 11 }} tickFormatter={(v) => showMoney ? `R$${v}` : "••••"} />
             <Tooltip
+              active={showMoney ? undefined : false}
               contentStyle={{ background: "#18181D", border: "1px solid #D4AF37", borderRadius: 12 }}
               labelStyle={{ color: "#D4AF37" }}
-              formatter={(v) => formatBRL(v)}
+              formatter={(v) => money(v)}
             />
             <Bar dataKey="valor" radius={[8, 8, 0, 0]}>
               {chartData.map((entry, idx) => (
@@ -139,12 +143,12 @@ export default function SuppostoGanho() {
             {Object.entries(data.portaria.by_method).map(([k, v]) => (
               <div key={k} className="flex justify-between py-2 border-b border-white/5 text-sm">
                 <span className="text-zinc-300 capitalize">{k}</span>
-                <span className="mono text-[#D4AF37]">{formatBRL(v)}</span>
+                <span className="mono text-[#D4AF37]">{money(v)}</span>
               </div>
             ))}
             <div className="flex justify-between pt-2 font-bold">
               <span className="text-zinc-100">Total Portaria</span>
-              <span className="mono gold-text">{formatBRL(data.portaria.revenue)}</span>
+              <span className="mono gold-text">{money(data.portaria.revenue)}</span>
             </div>
           </div>
         </div>
@@ -154,12 +158,12 @@ export default function SuppostoGanho() {
             {Object.entries(data.produtos.by_method).map(([k, v]) => (
               <div key={k} className="flex justify-between py-2 border-b border-white/5 text-sm">
                 <span className="text-zinc-300 capitalize">{k}</span>
-                <span className="mono text-[#D4AF37]">{formatBRL(v)}</span>
+                <span className="mono text-[#D4AF37]">{money(v)}</span>
               </div>
             ))}
             <div className="flex justify-between pt-2 font-bold">
               <span className="text-zinc-100">Total Produtos</span>
-              <span className="mono gold-text">{formatBRL(data.produtos.revenue)}</span>
+              <span className="mono gold-text">{money(data.produtos.revenue)}</span>
             </div>
           </div>
         </div>
@@ -189,11 +193,11 @@ export default function SuppostoGanho() {
                 <tr key={r.product_id} className="border-t border-white/5 hover:bg-white/5" data-testid={`sg-row-${r.name}`}>
                   <td className="px-4 py-2 text-zinc-100">{r.name}</td>
                   <td className="px-4 py-2 mono text-right text-zinc-200">{r.qty}</td>
-                  <td className="px-4 py-2 mono text-right text-zinc-300">{formatBRL(r.unit_price)}</td>
-                  <td className="px-4 py-2 mono text-right text-zinc-400">{formatBRL(r.unit_cost)}</td>
-                  <td className="px-4 py-2 mono text-right text-emerald-400">{formatBRL(r.unit_profit)}</td>
-                  <td className="px-4 py-2 mono text-right text-[#D4AF37]">{formatBRL(r.revenue)}</td>
-                  <td className="px-4 py-2 mono text-right text-emerald-400 font-bold">{formatBRL(r.profit)}</td>
+                  <td className="px-4 py-2 mono text-right text-zinc-300">{money(r.unit_price)}</td>
+                  <td className="px-4 py-2 mono text-right text-zinc-400">{money(r.unit_cost)}</td>
+                  <td className="px-4 py-2 mono text-right text-emerald-400">{money(r.unit_profit)}</td>
+                  <td className="px-4 py-2 mono text-right text-[#D4AF37]">{money(r.revenue)}</td>
+                  <td className="px-4 py-2 mono text-right text-emerald-400 font-bold">{money(r.profit)}</td>
                 </tr>
               ))}
               {data.produtos.rows.length === 0 && (
@@ -204,8 +208,8 @@ export default function SuppostoGanho() {
               <tfoot className="bg-[#18181D]">
                 <tr className="border-t-2 border-[#D4AF37]/30">
                   <td className="px-4 py-3 font-bold text-zinc-100" colSpan="5">TOTAL</td>
-                  <td className="px-4 py-3 mono text-right font-bold text-[#D4AF37]">{formatBRL(data.produtos.revenue)}</td>
-                  <td className="px-4 py-3 mono text-right font-bold gold-text">{formatBRL(data.produtos.profit)}</td>
+                  <td className="px-4 py-3 mono text-right font-bold text-[#D4AF37]">{money(data.produtos.revenue)}</td>
+                  <td className="px-4 py-3 mono text-right font-bold gold-text">{money(data.produtos.profit)}</td>
                 </tr>
               </tfoot>
             )}

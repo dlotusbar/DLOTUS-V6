@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import api, { formatBRL, formatDate } from "../lib/api";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function Reports() {
   const [sales, setSales] = useState([]);
+  const [showMoney, setShowMoney] = useState(false);
+  const money = (v) => showMoney ? formatBRL(v) : "R$ ••••";
   const [cashiers, setCashiers] = useState([]);
   const [cashierId, setCashierId] = useState("");
   const [start, setStart] = useState("");
@@ -59,7 +62,7 @@ export default function Reports() {
 
   return (
     <div className="p-6 lg:p-10 pb-24 space-y-6">
-      <h1 className="font-display text-3xl font-extrabold gold-text">Relatórios</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3"><h1 className="font-display text-3xl font-extrabold gold-text">Relatórios</h1><button type="button" onClick={() => setShowMoney(v => !v)} aria-label={showMoney ? "Ocultar valores dos Relatórios" : "Mostrar valores dos Relatórios"} className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/20 bg-[#18181D] text-zinc-100">{showMoney ? <EyeOff size={19}/> : <Eye size={19}/>} {showMoney ? "Ocultar valores" : "Mostrar valores"}</button></div>
       <div className="bg-[#121215] border border-white/5 rounded-2xl p-5 flex flex-wrap gap-3">
         <div>
           <label className="text-xs uppercase tracking-widest text-zinc-400">Caixa</label>
@@ -92,17 +95,17 @@ export default function Reports() {
           <button onClick={printHistory} className="px-4 py-2 rounded-lg bg-blue-700 text-white">Imprimir / Salvar PDF</button>
           <button onClick={exportCSV} className="px-4 py-2 rounded-lg bg-zinc-700 text-white">Exportar Excel (CSV)</button>
         </div>
-        <p className="text-sm text-zinc-400">{filtered.length} vendas encontradas · Total: <strong className="text-white">{formatBRL(filtered.reduce((n,s)=>n+Number(s.total||0),0))}</strong></p>
+        <p className="text-sm text-zinc-400">{filtered.length} vendas encontradas · Total: <strong className="text-white">{money(filtered.reduce((n,s)=>n+Number(s.total||0),0))}</strong></p>
         <p className="text-xs text-zinc-500">Pesquisa por cliente disponível para vendas com nome registrado. A consulta respeita o período e o caixa selecionados acima.</p>
         {error && <p role="alert" className="text-red-400">{error}</p>}
         <div className="space-y-2 max-h-[500px] overflow-auto">
           {filtered.map(s => <div key={s.id} className="border border-white/10 rounded-lg p-3">
             <button className="w-full text-left flex flex-wrap justify-between gap-2" onClick={() => setExpanded(p => ({...p,[s.id]:!p[s.id]}))}>
-              <span>{s.table_label || "Venda Rápida"} · {s.customer_name || "Cliente não informado"}</span><span>{formatDate(s.closed_at)} · <b>{formatBRL(s.total)}</b> {expanded[s.id] ? "▲" : "▼"}</span>
+              <span>{s.table_label || "Venda Rápida"} · {s.customer_name || "Cliente não informado"}</span><span>{formatDate(s.closed_at)} · <b>{money(s.total)}</b> {expanded[s.id] ? "▲" : "▼"}</span>
             </button>
             {expanded[s.id] && <div className="mt-3 border-t border-white/10 pt-3 text-sm space-y-2">
-              {(s.items || []).filter(i => i.status !== "cancelled").map((i,k) => <div key={k} className="flex justify-between"><span>{i.quantity}× {i.product_name}</span><span>{formatBRL(i.subtotal)}</span></div>)}
-              <p className="text-zinc-400">Pagamentos: {(s.payments || []).map(p => `${p.method} ${formatBRL(p.amount)}`).join(" · ") || "Não informado"}</p>
+              {(s.items || []).filter(i => i.status !== "cancelled").map((i,k) => <div key={k} className="flex justify-between"><span>{i.quantity}× {i.product_name}</span><span>{money(i.subtotal)}</span></div>)}
+              <p className="text-zinc-400">Pagamentos: {(s.payments || []).map(p => `${p.method} ${money(p.amount)}`).join(" · ") || "Não informado"}</p>
             </div>}
           </div>)}
           {filtered.length === 0 && <p className="text-zinc-500">Nenhuma venda encontrada.</p>}
@@ -111,8 +114,8 @@ export default function Reports() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KPI label="Vendas" value={sales.length} />
-        <KPI label="Total" value={formatBRL(total)} />
-        <KPI label="Ticket Médio" value={formatBRL(sales.length ? total / sales.length : 0)} />
+        <KPI label="Total" value={money(total)} />
+        <KPI label="Ticket Médio" value={money(sales.length ? total / sales.length : 0)} />
         <KPI label="Itens Vendidos" value={Object.values(byProduct).reduce((s, p) => s + p.qty, 0)} />
       </div>
 
@@ -121,7 +124,7 @@ export default function Reports() {
           <h3 className="font-display text-lg font-bold mb-3">Por forma de pagamento</h3>
           {Object.entries(byMethod).map(([m, v]) => (
             <div key={m} className="flex justify-between py-2 border-b border-white/5 text-sm">
-              <span className="text-zinc-300 capitalize">{m}</span><span className="mono text-[#D4AF37]">{formatBRL(v)}</span>
+              <span className="text-zinc-300 capitalize">{m}</span><span className="mono text-[#D4AF37]">{money(v)}</span>
             </div>
           ))}
           {Object.keys(byMethod).length === 0 && <p className="text-zinc-500 text-sm">Sem dados.</p>}
@@ -133,7 +136,7 @@ export default function Reports() {
             {topProd.map(([n, v], i) => (
               <div key={n} className="flex justify-between py-1.5 border-b border-white/5 text-sm">
                 <span className="text-zinc-300">#{i + 1} {n}</span>
-                <span className="mono text-zinc-100">{v.qty}× · {formatBRL(v.total)}</span>
+                <span className="mono text-zinc-100">{v.qty}× · {money(v.total)}</span>
               </div>
             ))}
             {topProd.length === 0 && <p className="text-zinc-500 text-sm">Sem dados.</p>}
@@ -152,7 +155,7 @@ export default function Reports() {
                 <td className="px-4 py-2 text-zinc-100">{s.table_label}</td>
                 <td className="px-4 py-2 mono text-zinc-400">{formatDate(s.closed_at)}</td>
                 <td className="px-4 py-2 text-zinc-400">{cashiers.find((c) => c.id === s.cashier_id)?.name || "-"}</td>
-                <td className="px-4 py-2 mono text-right text-[#D4AF37]">{formatBRL(s.total)}</td>
+                <td className="px-4 py-2 mono text-right text-[#D4AF37]">{money(s.total)}</td>
               </tr>
             ))}
           </tbody>
