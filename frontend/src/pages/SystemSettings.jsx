@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Upload, Trash2, RotateCcw, Save, Palette, Settings as SettingsIcon, Image as ImgIcon, Monitor, Menu as MenuIcon, Square, Eye, Sun, Moon, Zap, Check } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { playSiren } from "../lib/sirenAudio";
+import { NAV_ITEMS } from "../navPermissions";
 
 const TABS = [
   { id: "geral", label: "Geral", icon: SettingsIcon },
@@ -12,6 +13,7 @@ const TABS = [
   { id: "cores", label: "Cores", icon: Palette },
   { id: "temas", label: "Temas", icon: Zap },
   { id: "menu", label: "Menu", icon: MenuIcon },
+  { id: "organizar", label: "Organizar Abas", icon: MenuIcon },
   { id: "botoes", label: "Botões & Cards", icon: Square },
   { id: "preview", label: "Pré-visualização", icon: Eye },
   { id: "sirenes", label: "Sirene Bar / Rosh", icon: Zap },
@@ -88,6 +90,7 @@ export default function SystemSettings() {
       {tab === "cores" && <ColorsTab settings={settings} setSettings={setSettings} />}
       {tab === "temas" && <ThemesTab settings={settings} setSettings={setSettings} />}
       {tab === "menu" && <MenuTab settings={settings} setSettings={setSettings} />}
+      {tab === "organizar" && <OrganizarAbas settings={settings} setSettings={setSettings} />}
       {tab === "botoes" && <ButtonsTab settings={settings} setSettings={setSettings} />}
       {tab === "preview" && <PreviewTab settings={settings} />}
       {tab === "sirenes" && <SirenSettings settings={settings} setSettings={setSettings} />}
@@ -240,6 +243,45 @@ function MenuTab({ settings, setSettings }) {
       </Section>
     </div>
   );
+}
+
+// ========== ORGANIZAR ABAS ==========
+function OrganizarAbas({ settings, setSettings }) {
+  const dragIndex = useRef(null);
+  const order = Array.isArray(settings.menu?.order) ? settings.menu.order : [];
+  const items = [...NAV_ITEMS].sort((a, b) => {
+    const ia = order.indexOf(a.to), ib = order.indexOf(b.to);
+    return (ia < 0 ? NAV_ITEMS.indexOf(a) + order.length : ia) -
+           (ib < 0 ? NAV_ITEMS.indexOf(b) + order.length : ib);
+  });
+  const saveOrder = (next) => setSettings({ menu: { order: next.map(i => i.to) } });
+  const move = (from, to) => {
+    if (from === null || from < 0 || to < 0 || from >= items.length || to >= items.length || from === to) return;
+    const next = [...items];
+    next.splice(to, 0, next.splice(from, 1)[0]);
+    saveOrder(next);
+  };
+  return <div className="max-w-3xl space-y-4">
+    <Section title="Organizar ordem das abas do PDV">
+      <p className="text-sm text-zinc-400">Arraste as abas para ordenar ou use as setas. A ordem vale para o menu do computador, celular e atalhos inferiores. As permissões dos funcionários continuam iguais.</p>
+      <div className="space-y-2">
+        {items.map((item, index) => <div key={item.to} draggable
+          onDragStart={e => { dragIndex.current = index; e.dataTransfer.effectAllowed = 'move'; }}
+          onDragOver={e => e.preventDefault()}
+          onDrop={e => { e.preventDefault(); move(dragIndex.current, index); dragIndex.current = null; }}
+          onDragEnd={() => { dragIndex.current = null; }}
+          className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5">
+          <span className="text-zinc-500 cursor-grab select-none" title="Arraste para mudar a ordem">☰</span>
+          <span className="text-xs text-zinc-500 w-6">{index + 1}.</span>
+          <span className="flex-1 text-sm text-zinc-100">{item.label}</span>
+          <button type="button" onClick={() => move(index, index - 1)} disabled={index === 0} aria-label={`Subir ${item.label}`} className="rounded-lg bg-white/10 px-3 py-2 disabled:opacity-25">↑</button>
+          <button type="button" onClick={() => move(index, index + 1)} disabled={index === items.length - 1} aria-label={`Descer ${item.label}`} className="rounded-lg bg-white/10 px-3 py-2 disabled:opacity-25">↓</button>
+        </div>)}
+      </div>
+      <button type="button" onClick={() => setSettings({ menu: { order: NAV_ITEMS.map(i => i.to) } })} className="rounded-lg border border-white/20 px-4 py-2 text-sm text-zinc-200">Restaurar ordem original das abas</button>
+      <p className="text-sm text-amber-300">Ao terminar, clique em SALVAR ALTERAÇÕES no topo da página.</p>
+    </Section>
+  </div>;
 }
 
 // ========== BOTÕES & CARDS ==========
