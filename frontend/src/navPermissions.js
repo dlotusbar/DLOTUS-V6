@@ -9,6 +9,7 @@ export const NAV_ITEMS = [
   { to: "/pagas-funcionarios", label: "Pagas Funcionários", icon: "WalletCards", perm: "pagas_funcionarios" },
   { to: "/vendas-prazo", label: "Vendas a Prazo", icon: "WalletCards", perm: "vendas_prazo" },
   { to: "/agenda", label: "Agenda", icon: "CalendarCheck", perm: "agenda" },
+  { to: "/assistente-ia", label: "D’Lotus IA", icon: "Bot", perm: "dashboard" },
   { to: "/bar", label: "Bar", icon: "Beer", perm: "bar" },
   { to: "/rosh", label: "Rosh", icon: "Flame", perm: "rosh" },
   { to: "/compras", label: "Estoque / Compras", icon: "Package", perm: "compras" },

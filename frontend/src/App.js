@@ -14,6 +14,7 @@ import ProductsAdmin from "./pages/ProductsAdmin";
 import PrintersAdmin from "./pages/PrintersAdmin";
 import Employees from "./pages/Employees";
 import BarPanel from "./pages/BarPanel";
+import AssistenteIA from "./pages/AssistenteIA";
 import RoshPanel from "./pages/RoshPanel";
 import CaixaPanel from "./pages/CaixaPanel";
 import Reports from "./pages/Reports";
@@ -28,9 +29,9 @@ import ReservasPublicas from "./pages/ReservasPublicas";
 import AgendaDLotus from "./pages/AgendaDLotus";
 import VendasPrazo from "./pages/VendasPrazo";
 import PagasFuncionarios from "./pages/PagasFuncionarios";
-import { LayoutDashboard, Beer, Flame, CreditCard, Users, Settings, Printer, FileText, LogOut, ClipboardList, History, UtensilsCrossed, DoorOpen, TrendingUp, Settings2, CalendarCheck, Package, WalletCards } from "lucide-react";
+import { LayoutDashboard, Beer, Flame, CreditCard, Users, Settings, Printer, FileText, LogOut, ClipboardList, History, UtensilsCrossed, DoorOpen, TrendingUp, Settings2, CalendarCheck, Package, WalletCards, Bot } from "lucide-react";
 
-const ICONS = { LayoutDashboard, Beer, Flame, CreditCard, Users, Settings, Printer, FileText, LogOut, ClipboardList, History, UtensilsCrossed, DoorOpen, TrendingUp, Settings2, CalendarCheck, Package, WalletCards };
+const ICONS = { LayoutDashboard, Beer, Flame, CreditCard, Users, Settings, Printer, FileText, LogOut, ClipboardList, History, UtensilsCrossed, DoorOpen, TrendingUp, Settings2, CalendarCheck, Package, WalletCards, Bot };
 const navItems = NAV_ITEMS.map(item => ({ ...item, icon: ICONS[item.icon] }));
 
 // Página inicial de acordo com as permissões reais do usuário.
@@ -174,6 +175,7 @@ export default function App() {
           <Route path="/balcao" element={<Protected><Balcao /></Protected>} />
           <Route path="/comanda/:orderId" element={<Protected><OrderDetail /></Protected>} />
           <Route path="/bar" element={<Protected><BarPanel /></Protected>} />
+          <Route path="/assistente-ia" element={<Protected><AssistenteIA /></Protected>} />
           <Route path="/rosh" element={<Protected><RoshPanel /></Protected>} />
           <Route path="/caixa" element={<Protected><CaixaPanel /></Protected>} />
           <Route path="/compras" element={<Protected><ComprasEstoque /></Protected>} />
