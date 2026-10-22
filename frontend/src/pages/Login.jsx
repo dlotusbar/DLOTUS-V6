@@ -124,7 +124,7 @@ export default function Login() {
             </div>
           )}
           <p className="text-xs text-center text-zinc-500 mt-4">
-            Demo: <span className="text-cyan-400">admin / admin</span>
+            Desenvolvido por <span className="text-cyan-400 font-semibold">Pet D'Lotus</span>
           </p>
         </form>
       </div>
