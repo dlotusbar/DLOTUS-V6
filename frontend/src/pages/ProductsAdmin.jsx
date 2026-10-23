@@ -77,7 +77,7 @@ export default function ProductsAdmin() {
   };
 
   return (
-    <div className="p-6 lg:p-10 pb-24 space-y-6">
+    <div className="min-w-0 p-3 sm:p-6 lg:p-10 pb-24 space-y-6">
       <h1 className="font-display text-3xl font-extrabold gold-text">Produtos</h1>
       <div className="bg-[#121215] border border-white/5 rounded-2xl p-5">
         <h3 className="font-display text-lg font-bold mb-4">{editing ? "Editar Produto" : "Novo Produto"}</h3>
@@ -155,9 +155,10 @@ export default function ProductsAdmin() {
         )}
       </div>
 
-      <div className="bg-[#121215] border border-white/5 rounded-2xl overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-[#18181D] text-zinc-400 uppercase text-xs tracking-widest">
+      <div className="min-w-0 max-w-full bg-[#121215] border border-white/5 rounded-2xl overflow-hidden">
+        <div className="max-h-[55dvh] sm:max-h-[65vh] w-full overflow-auto overscroll-contain touch-pan-x touch-pan-y" style={{ scrollbarWidth: "auto", WebkitOverflowScrolling: "touch", touchAction: "pan-x pan-y" }} tabIndex={0} aria-label="Lista de produtos com rolagem">
+        <table className="min-w-[760px] w-full text-sm">
+          <thead className="sticky top-0 z-10 bg-[#18181D] text-zinc-400 uppercase text-xs tracking-widest">
             <tr><th className="px-4 py-3 text-left">Produto</th><th className="px-4 py-3 text-left">Categoria</th><th className="px-4 py-3 text-left">Impressora</th><th className="px-4 py-3 text-right">Venda</th><th className="px-4 py-3 text-right">Estoque</th><th className="px-4 py-3"></th></tr>
           </thead>
           <tbody>
@@ -176,6 +177,7 @@ export default function ProductsAdmin() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );
