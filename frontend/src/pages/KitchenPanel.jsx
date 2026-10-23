@@ -28,6 +28,16 @@ function KitchenPanel({ kind, title, icon: TitleIcon, hideHeader }) {
   const [items, setItems] = useState([]);
   const [tab, setTab] = useState("queue"); // queue | history
   const [history, setHistory] = useState([]);
+  const [historySearch, setHistorySearch] = useState("");
+  const [historySearchType, setHistorySearchType] = useState("mesa");
+  const filteredHistory = history.filter((h) => {
+    const query = historySearch.trim().toLocaleLowerCase("pt-BR");
+    if (!query) return true;
+    const field = historySearchType === "mesa"
+      ? String(h.table_label ?? h.table_name ?? h.table_number ?? "")
+      : String(h.customer_name ?? h.client_name ?? h.nome_cliente ?? h.customer?.name ?? h.client?.name ?? "");
+    return field.toLocaleLowerCase("pt-BR").includes(query);
+  });
 
   const loadQueue = () => api.get(`/kitchen/${kind}`).then((r) => setItems(r.data)).catch(() => {});
   const loadHistory = () => api.get(`/kitchen/${kind}/history`).then((r) => setHistory(r.data)).catch(() => {});
@@ -127,11 +137,21 @@ function KitchenPanel({ kind, title, icon: TitleIcon, hideHeader }) {
         <div className="bg-[#121215] border border-white/5 rounded-2xl overflow-hidden" data-testid="history-table">
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 flex-wrap gap-2">
             <h3 className="font-display text-lg font-bold text-zinc-100 flex items-center gap-2">
-              <HistoryIcon size={16} className="text-[#D4AF37]" /> Histórico de hoje · {history.length} itens
+              <HistoryIcon size={16} className="text-[#D4AF37]" /> Histórico de hoje · {filteredHistory.length} de {history.length} itens
             </h3>
             <div className="text-sm text-zinc-400">
               Faturamento efetivo: <span className="mono font-bold text-[#D4AF37]">{formatBRL(historyTotalValue)}</span>
             </div>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2 px-4 py-3 border-b border-white/5">
+            <label className="text-sm text-zinc-300 flex items-center gap-2">
+              Buscar por
+              <select value={historySearchType} onChange={(e) => { setHistorySearchType(e.target.value); setHistorySearch(""); }} className="bg-[#18181D] border border-white/10 rounded-lg px-3 py-2 text-zinc-100" aria-label="Tipo de busca do histórico">
+                <option value="mesa">Mesa</option>
+                <option value="nome">Nome do cliente</option>
+              </select>
+            </label>
+            <input type="search" value={historySearch} onChange={(e) => setHistorySearch(e.target.value)} placeholder={historySearchType === "mesa" ? "Digite a mesa..." : "Digite o nome do cliente..."} aria-label="Pesquisar histórico" className="flex-1 min-w-0 bg-[#18181D] border border-white/10 rounded-lg px-3 py-2 text-zinc-100 placeholder:text-zinc-500" />
           </div>
           <div className="overflow-x-auto">
             <div className="w-full max-w-full overflow-x-auto overscroll-x-contain touch-pan-x" tabIndex={0} aria-label="Tabela com rolagem horizontal"><table className="w-full text-sm">
@@ -151,10 +171,10 @@ function KitchenPanel({ kind, title, icon: TitleIcon, hideHeader }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {history.length === 0 && (
-                  <tr><td colSpan={11} className="px-3 py-8 text-center text-zinc-500">Nenhum item entregue hoje.</td></tr>
+                {filteredHistory.length === 0 && (
+                  <tr><td colSpan={11} className="px-3 py-8 text-center text-zinc-500">Nenhum pedido encontrado.</td></tr>
                 )}
-                {history.map((h) => (
+                {filteredHistory.map((h) => (
                   <tr key={h.item_id} className="hover:bg-white/5" data-testid={`history-row-${h.item_id}`}>
                     <td className="px-3 py-2 font-bold text-zinc-100">
                       {h.table_label}
