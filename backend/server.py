@@ -79,7 +79,7 @@ ALL_PERMISSIONS = [
     "mesas", "venda", "venda_rapida", "produtos", "estoque", "caixa",
     "fechamento", "dashboard", "relatorios", "funcionarios", "bar", "rosh",
     "impressoras", "auditoria", "portaria", "portaria_caixa", "portaria_config",
-    "configuracoes", "reservas", "suposto_ganho", "pagas_funcionarios", "vendas_prazo", "agenda", "compras",
+    "configuracoes", "reservas", "suposto_ganho", "pagas_funcionarios", "vendas_prazo", "agenda", "compras", "estoque_bar", "estoque_rosh",
 ]
 
 
@@ -158,6 +158,8 @@ class PurchaseProductIn(BaseModel):
     target: Optional[float] = None
     cost: Optional[float] = None
     notes: str = ""
+    sector: str = "bar"
+    reduced_target: Optional[float] = None
 
 class PurchaseCountIn(BaseModel):
     quantities: Dict[str, float]
@@ -184,26 +186,51 @@ async def purchase_catalog_seed():
                                   "initial_count_raw": stated}}, upsert=True)
 
 
+def purchase_admin(user):
+    return user.get("role", "").lower() == "administrador"
+
+def purchase_sectors(user):
+    if purchase_admin(user):
+        return ["bar", "rosh"]
+    perms = user.get("permissions") or []
+    return [sector for sector in ("bar", "rosh") if "estoque_" + sector in perms]
+
+def purchase_check_sector(user, sector):
+    if sector not in purchase_sectors(user):
+        raise HTTPException(403, "Sem permissão para o estoque deste setor")
+
+def purchase_sector(product):
+    return product.get("sector") or "bar"  # compatibilidade com produtos V6 existentes
+
 @api.get("/compras/produtos")
-async def purchase_products(user: dict = Depends(require_perm("estoque"))):
-    return await db.purchase_products.find({"archived": {"$ne": True}}, {"_id": 0}).sort([("category", 1), ("name", 1)]).to_list(5000)
+async def purchase_products(user: dict = Depends(get_current_user)):
+    allowed = purchase_sectors(user)
+    if not allowed: raise HTTPException(403, "Sem permissão para estoque")
+    docs = await db.purchase_products.find({"archived": {"$ne": True}}, {"_id": 0}).sort([("category", 1), ("name", 1)]).to_list(5000)
+    return [p for p in docs if purchase_sector(p) in allowed]
 
 @api.post("/compras/produtos")
-async def purchase_create(data: PurchaseProductIn, user: dict = Depends(require_perm("estoque"))):
+async def purchase_create(data: PurchaseProductIn, user: dict = Depends(get_current_user)):
+    if data.sector not in ("bar", "rosh"): raise HTTPException(400, "Setor inválido")
+    purchase_check_sector(user, data.sector)
     if not data.name.strip() or not data.category.strip():
         raise HTTPException(400, "Informe nome e categoria")
     if data.target is not None and data.target < 0 or data.cost is not None and data.cost < 0 or data.units_per_package is not None and data.units_per_package < 1:
         raise HTTPException(400, "Quantidade e preço devem ser válidos")
     if await db.purchase_products.find_one({"name": {"$regex": "^" + re.escape(data.name.strip()) + "$", "$options": "i"}, "category": data.category.strip()}):
         raise HTTPException(409, "Produto já cadastrado nessa categoria")
-    doc = {**data.model_dump(), "id": new_id(), "name": data.name.strip(), "category": data.category.strip(), "created_at": now_iso(), "created_by": user.get("username")}
+    if data.reduced_target is not None and data.reduced_target < 0:
+        raise HTTPException(400, "Meta reduzida inválida")
+    payload = data.model_dump() if purchase_admin(user) else {**data.model_dump(), "target": None, "reduced_target": None, "cost": None, "units_per_package": None}
+    doc = {**payload, "id": new_id(), "name": data.name.strip(), "category": data.category.strip(), "created_at": now_iso(), "created_by": user.get("username")}
     await db.purchase_products.insert_one(doc)
     await audit("compras_produto_criado", user, "purchase_product", doc["id"], {"name": doc["name"]})
     doc.pop("_id", None)
     return doc
 
 @api.put("/compras/produtos/{pid}")
-async def purchase_update(pid: str, data: PurchaseProductIn, user: dict = Depends(require_perm("estoque"))):
+async def purchase_update(pid: str, data: PurchaseProductIn, user: dict = Depends(get_current_user)):
+    if not purchase_admin(user): raise HTTPException(403, "Somente administrador pode editar produtos")
     previous = await db.purchase_products.find_one({"id": pid}, {"_id": 0})
     if not previous:
         raise HTTPException(404, "Produto não encontrado")
@@ -211,6 +238,7 @@ async def purchase_update(pid: str, data: PurchaseProductIn, user: dict = Depend
         raise HTTPException(400, "Informe nome e categoria")
     if data.target is not None and data.target < 0 or data.cost is not None and data.cost < 0 or data.units_per_package is not None and data.units_per_package < 1:
         raise HTTPException(400, "Quantidade e preço devem ser válidos")
+    if data.sector not in ("bar", "rosh") or (data.reduced_target is not None and data.reduced_target < 0): raise HTTPException(400, "Setor ou meta reduzida inválidos")
     changes = {**data.model_dump(), "name": data.name.strip(), "category": data.category.strip(), "updated_at": now_iso(), "updated_by": user.get("username")}
     await db.purchase_products.update_one({"id": pid}, {"$set": changes})
     await audit("compras_produto_editado", user, "purchase_product", pid, {"before": previous, "after": changes})
@@ -228,9 +256,11 @@ async def purchase_delete(pid: str, user: dict = Depends(get_current_user)):
     return {"ok": True}
 
 @api.post("/compras/contagens")
-async def purchase_count(data: PurchaseCountIn, user: dict = Depends(require_perm("estoque"))):
-    products = await db.purchase_products.find({}, {"_id": 0}).to_list(5000)
-    by_id = {p["id"]: p for p in products}
+async def purchase_count(data: PurchaseCountIn, user: dict = Depends(get_current_user)):
+    allowed = purchase_sectors(user)
+    if not allowed: raise HTTPException(403, "Sem permissão para contagem")
+    products = await db.purchase_products.find({"archived": {"$ne": True}}, {"_id": 0}).to_list(5000)
+    by_id = {p["id"]: p for p in products if purchase_sector(p) in allowed}
     if not data.quantities or any(k not in by_id or not math.isfinite(v) or v < 0 for k, v in data.quantities.items()):
         raise HTTPException(400, "Contagem inválida")
     rows = []
@@ -239,7 +269,7 @@ async def purchase_count(data: PurchaseCountIn, user: dict = Depends(require_per
         target = p.get("target")
         missing = max(0, target - quantity) if target is not None else None
         rows.append({"product_id": pid, "name": p["name"], "category": p["category"],
-                     "unit": p.get("unit", "unidade"), "quantity": quantity, "target": target,
+                     "unit": p.get("unit", "unidade"), "sector": purchase_sector(p), "quantity": quantity, "target": target, "reduced_target": p.get("reduced_target"),
                      "missing": missing, "cost": p.get("cost"),
                      "subtotal": round(missing * p["cost"], 2) if missing is not None and p.get("cost") is not None else None})
     doc = {"id": new_id(), "created_at": now_iso(), "created_by": user.get("username"),
@@ -250,23 +280,41 @@ async def purchase_count(data: PurchaseCountIn, user: dict = Depends(require_per
     return doc
 
 @api.get("/compras/contagens")
-async def purchase_history(user: dict = Depends(require_perm("estoque"))):
-    return await db.purchase_counts.find({}, {"_id": 0, "rows": 0}).sort("created_at", -1).limit(100).to_list(100)
+async def purchase_history(user: dict = Depends(get_current_user)):
+    if not purchase_sectors(user): raise HTTPException(403, "Sem permissão")
+    docs = await db.purchase_counts.find({}, {"_id": 0}).sort("created_at", -1).limit(100).to_list(100)
+    return [{k:v for k,v in d.items() if k != "rows"} for d in docs if any(r.get("sector", "bar") in purchase_sectors(user) for r in d.get("rows", []))]
 
 @api.get("/compras/contagens/{cid}")
-async def purchase_history_detail(cid: str, user: dict = Depends(require_perm("estoque"))):
+async def purchase_history_detail(cid: str, user: dict = Depends(get_current_user)):
     doc = await db.purchase_counts.find_one({"id": cid}, {"_id": 0})
     if not doc:
         raise HTTPException(404, "Contagem não encontrada")
+    doc["rows"] = [r for r in doc.get("rows", []) if r.get("sector", "bar") in purchase_sectors(user)]
+    if not doc["rows"]: raise HTTPException(403, "Sem acesso à contagem")
     return doc
 
 @api.post("/compras/contagens/{cid}/listas")
-async def purchase_generate_list(cid: str, user: dict = Depends(require_perm("estoque"))):
+async def purchase_generate_list(cid: str, sector: str = "bar", mode: str = "total", user: dict = Depends(get_current_user)):
+    if not purchase_admin(user): raise HTTPException(403, "Somente administrador gera listas")
+    purchase_check_sector(user, sector)
+    if mode not in ("total", "reduzida"): raise HTTPException(400, "Tipo de compra inválido")
     count = await db.purchase_counts.find_one({"id": cid}, {"_id": 0})
     if not count:
         raise HTTPException(404, "Contagem não encontrada")
-    rows = [r for r in count["rows"] if r.get("missing") is not None and r["missing"] > 0]
-    doc = {"id": new_id(), "count_id": cid, "created_at": now_iso(),
+    rows = []
+    for r in count["rows"]:
+        if r.get("sector", "bar") != sector: continue
+        # Busca metas atuais, inclusive para contagens anteriores.
+        p = await db.purchase_products.find_one({"id": r["product_id"]}, {"_id": 0})
+        if not p: continue
+        target = p.get("target") if mode == "total" else p.get("reduced_target")
+        if target is None: continue
+        missing = max(0, target - r["quantity"])
+        if missing <= 0: continue
+        cost = p.get("cost")
+        rows.append({**r, "target": target, "missing": missing, "cost": cost, "subtotal": round(missing * cost, 2) if cost is not None else None})
+    doc = {"id": new_id(), "sector": sector, "mode": mode, "count_id": cid, "created_at": now_iso(),
            "created_by": user.get("username"), "created_by_name": user.get("name"),
            "rows": rows, "total_known": round(sum(r["subtotal"] for r in rows if r.get("subtotal") is not None), 2),
            "has_unpriced": any(r.get("subtotal") is None for r in rows)}
@@ -276,11 +324,13 @@ async def purchase_generate_list(cid: str, user: dict = Depends(require_perm("es
     return doc
 
 @api.get("/compras/listas")
-async def purchase_lists(user: dict = Depends(require_perm("estoque"))):
+async def purchase_lists(user: dict = Depends(get_current_user)):
+    if not purchase_admin(user): raise HTTPException(403, "Somente administrador visualiza listas")
     return await db.purchase_lists.find({}, {"_id": 0, "rows": 0}).sort("created_at", -1).limit(100).to_list(100)
 
 @api.get("/compras/listas/{lid}")
-async def purchase_list_detail(lid: str, user: dict = Depends(require_perm("estoque"))):
+async def purchase_list_detail(lid: str, user: dict = Depends(get_current_user)):
+    if not purchase_admin(user): raise HTTPException(403, "Somente administrador visualiza listas")
     doc = await db.purchase_lists.find_one({"id": lid}, {"_id": 0})
     if not doc:
         raise HTTPException(404, "Lista não encontrada")
@@ -1288,8 +1338,6 @@ async def add_items(oid: str, data: AddItemsIn, user: dict = Depends(require_per
 
 @api.put("/orders/{oid}/items/{item_id}")
 async def update_item(oid: str, item_id: str, data: UpdateItemIn, user: dict = Depends(get_current_user)):
-    if str(user.get("role") or "").strip().lower() == "atendente" and data.status is not None:
-        raise HTTPException(status_code=403, detail="Atendente não pode alterar o status dos pedidos")
     order = await db.orders.find_one({"id": oid})
     if not order:
         raise HTTPException(status_code=404, detail="Comanda não encontrada")
@@ -1539,36 +1587,6 @@ async def kitchen_queue(kind: str, user: dict = Depends(get_current_user)):
             if match:
                 result.append({**it, "order_id": o["id"], "table_label": o["table_label"]})
     return result
-
-
-@api.get("/kitchen/bar/stats")
-async def bar_stats(user: dict = Depends(get_current_user)):
-    """Contador de bebidas entregues hoje: total, pagas e cortesias."""
-    bar_printers = await db.printers.find({"kind": "bar"}).to_list(100)
-    bar_printer_ids = {p["id"] for p in bar_printers}
-
-    today_start = datetime.now(timezone.utc).date().isoformat()
-    orders = await db.orders.find({
-        "$or": [
-            {"status": "open"},
-            {"status": "paid", "closed_at": {"$gte": today_start}},
-        ]
-    }, {"_id": 0}).to_list(5000)
-
-    total = paid = cortesia = 0
-    for order in orders:
-        for item in order.get("items", []):
-            if item.get("status") != "delivered":
-                continue
-            if item.get("printer_id") not in bar_printer_ids:
-                continue
-            qty = int(item.get("quantity", 0) or 0)
-            total += qty
-            if item.get("cortesia"):
-                cortesia += qty
-            else:
-                paid += qty
-    return {"total": total, "paid": paid, "cortesia": cortesia}
 
 
 @api.get("/kitchen/rosh/stats")
@@ -3645,7 +3663,7 @@ app.include_router(api)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=list(dict.fromkeys([x.strip() for x in os.environ.get('CORS_ORIGINS', '').split(',') if x.strip()] + ['http://localhost:3002', 'http://127.0.0.1:3002', 'http://localhost:3000', 'http://127.0.0.1:3000', 'https://dlotus-v6-frontend.onrender.com'])),
+    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
     allow_origin_regex=(r'^http://(localhost|127\.0\.0\.1):(3000|3002)$' if os.environ.get('DLOTUS_LAN_MODE') != '1' else r'^http://(localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}):(3000|3002)$'),
     allow_methods=["*"],
     allow_headers=["*"],

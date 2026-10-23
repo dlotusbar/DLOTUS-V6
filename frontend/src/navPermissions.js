@@ -20,5 +20,5 @@ export const NAV_ITEMS = [
   { to: "/auditoria", label: "Auditoria", icon: "History", perm: "auditoria" },
   { to: "/configuracoes", label: "Configurações", icon: "Settings2", perm: "configuracoes" },
 ];
-export const EXTRA_PERMISSIONS = ["mesas", "venda_rapida", "fechamento", "portaria_caixa", "portaria_config"];
+export const EXTRA_PERMISSIONS = ["estoque_bar", "estoque_rosh", "mesas", "venda_rapida", "fechamento", "portaria_caixa", "portaria_config"];
 export const ALL_PERMISSIONS = [...new Set([...NAV_ITEMS.map(i => i.perm), ...EXTRA_PERMISSIONS])];
