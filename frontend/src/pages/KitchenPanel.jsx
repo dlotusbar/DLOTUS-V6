@@ -22,7 +22,7 @@ const fmtDuration = (s) => {
 
 function KitchenPanel({ kind, title, icon: TitleIcon, hideHeader }) {
   const { user } = useAuth();
-  const isAttendant = String(user?.role || "").trim().toLowerCase() === "atendente";
+  const isAtendente = (user?.role || "").trim().toLowerCase() === "atendente";
   const [items, setItems] = useState([]);
   const [tab, setTab] = useState("queue"); // queue | history
   const [history, setHistory] = useState([]);
@@ -31,14 +31,13 @@ function KitchenPanel({ kind, title, icon: TitleIcon, hideHeader }) {
   const loadHistory = () => api.get(`/kitchen/${kind}/history`).then((r) => setHistory(r.data)).catch(() => {});
 
   useEffect(() => {
-    const run = () => { loadQueue(); if (tab === "history") loadHistory(); };
+    const run = () => { loadQueue(); if (!isAtendente && tab === "history") loadHistory(); };
     run();
     const i = setInterval(run, 4000);
     return () => clearInterval(i);
-  }, [kind, tab]);
+  }, [kind, tab, isAtendente]);
 
   const act = async (it, status) => {
-    if (isAttendant) { toast.error("Atendente pode apenas visualizar pedidos."); return; }
     try {
       await api.put(`/orders/${it.order_id}/items/${it.id}`, { status });
       toast.success(status === "delivered" ? (kind === "rosh" ? "Rosh enviado!" : "Item entregue!") : "Em produção");
@@ -57,7 +56,7 @@ function KitchenPanel({ kind, title, icon: TitleIcon, hideHeader }) {
 
   return (
     <div className="p-6 lg:p-10 pb-24">
-      {!isAttendant && <PedidoSirene kind={kind} items={items} />}
+      <PedidoSirene kind={kind} items={items} />
       <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
         {!hideHeader && (
           <div className="flex items-center gap-3">
@@ -75,15 +74,15 @@ function KitchenPanel({ kind, title, icon: TitleIcon, hideHeader }) {
             data-testid="tab-queue"
             className={`px-4 py-2 rounded-md text-sm font-bold flex items-center gap-2 transition ${tab === "queue" ? "bg-[#D4AF37] text-black" : "text-zinc-400 hover:text-zinc-100"}`}
           ><Play size={14} /> Fila ativa</button>
-          <button
+          {!isAtendente && <button
             onClick={() => setTab("history")}
             data-testid="tab-history"
             className={`px-4 py-2 rounded-md text-sm font-bold flex items-center gap-2 transition ${tab === "history" ? "bg-[#D4AF37] text-black" : "text-zinc-400 hover:text-zinc-100"}`}
-          ><HistoryIcon size={14} /> Histórico (hoje)</button>
+          ><HistoryIcon size={14} /> Histórico (hoje)</button>}
         </div>
       </div>
 
-      {tab === "queue" ? (
+      {(isAtendente || tab === "queue") ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {columns.map((status) => {
             const list = items.filter((i) => i.status === status);
@@ -106,14 +105,14 @@ function KitchenPanel({ kind, title, icon: TitleIcon, hideHeader }) {
                         {it.quantity}× {it.product_name}
                       </div>
                       {it.note && <div className="text-xs text-zinc-500 mt-1">Obs: {it.note}</div>}
-                      {!isAttendant && <div className="flex gap-2 mt-3">
+                      <div className="flex gap-2 mt-3">
                         {status === "waiting" && (
                           <button onClick={() => act(it, "producing")} data-testid={`start-${it.id}`} className="flex-1 py-2 bg-amber-900/40 text-amber-300 rounded-lg text-sm font-medium flex items-center justify-center gap-1 hover:bg-amber-800/40"><Play size={12} /> Iniciar</button>
                         )}
                         <button onClick={() => act(it, "delivered")} data-testid={`deliver-${it.id}`} className="flex-1 py-2 bg-[#D4AF37] text-black rounded-lg text-sm font-bold flex items-center justify-center gap-1">
                           <CheckCircle2 size={12} /> {kind === "rosh" ? "Rosh Enviado" : "Entregue"}
                         </button>
-                      </div>}
+                      </div>
                     </div>
                   ))}
                 </div>

@@ -21,6 +21,8 @@ function StatCard({ icon: Icon, label, value, color = "#D4AF37", testid }) {
 }
 
 export default function RoshPanel() {
+  const { user } = useAuth();
+  const isAtendente = (user?.role || "").trim().toLowerCase() === "atendente";
   const [stats, setStats] = useState({ total: 0, paid: 0, cortesia: 0 });
   const [view, setView] = useState("operacao"); // operacao | narguile
 
@@ -58,14 +60,14 @@ export default function RoshPanel() {
 
         {view === "operacao" && (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
+            {!isAtendente && <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
               <StatCard icon={CheckCircle2} label="Rosh entregues (hoje)" value={stats.total} color="#D4AF37" testid="rosh-stat-total" />
               <StatCard icon={Coins} label="Pagas" value={stats.paid} color="#4ade80" testid="rosh-stat-paid" />
               <StatCard icon={Gift} label="Cortesia" value={stats.cortesia} color="#f472b6" testid="rosh-stat-cortesia" />
-            </div>
-            <p className="text-[10px] text-zinc-600 uppercase tracking-widest">
+            </div>}
+            {!isAtendente && <p className="text-[10px] text-zinc-600 uppercase tracking-widest">
               * Conta apenas Rosh marcadas como <b className="text-[#D4AF37]">Entregues</b>. Pendentes, em produção e canceladas não entram no contador.
-            </p>
+            </p>}
           </>
         )}
       </div>
