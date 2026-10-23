@@ -24,7 +24,7 @@ function KitchenPanel({ kind, title, icon: TitleIcon, hideHeader }) {
   const { user } = useAuth();
   const role = String(user?.role || "").trim().toLowerCase();
   const isAtendente = role === "atendente";
-  const hideDeliveredHistory = ["atendente", "bar", "rosh"].includes(role);
+  const hideDeliveredHistory = ["bar", "rosh"].includes(role);
   const [items, setItems] = useState([]);
   const [tab, setTab] = useState("queue"); // queue | history
   const [history, setHistory] = useState([]);
