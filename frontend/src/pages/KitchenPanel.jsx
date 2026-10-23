@@ -22,7 +22,8 @@ const fmtDuration = (s) => {
 
 function KitchenPanel({ kind, title, icon: TitleIcon, hideHeader }) {
   const { user } = useAuth();
-  const isAtendente = (user?.role || "").trim().toLowerCase() === "atendente";
+  const role = String(user?.role || "").trim().toLowerCase();
+  const hideDeliveredHistory = ["atendente", "bar", "rosh"].includes(role);
   const [items, setItems] = useState([]);
   const [tab, setTab] = useState("queue"); // queue | history
   const [history, setHistory] = useState([]);
@@ -31,11 +32,11 @@ function KitchenPanel({ kind, title, icon: TitleIcon, hideHeader }) {
   const loadHistory = () => api.get(`/kitchen/${kind}/history`).then((r) => setHistory(r.data)).catch(() => {});
 
   useEffect(() => {
-    const run = () => { loadQueue(); if (!isAtendente && tab === "history") loadHistory(); };
+    const run = () => { loadQueue(); if (!hideDeliveredHistory && tab === "history") loadHistory(); };
     run();
     const i = setInterval(run, 4000);
     return () => clearInterval(i);
-  }, [kind, tab, isAtendente]);
+  }, [kind, tab, hideDeliveredHistory]);
 
   const act = async (it, status) => {
     try {
@@ -74,7 +75,7 @@ function KitchenPanel({ kind, title, icon: TitleIcon, hideHeader }) {
             data-testid="tab-queue"
             className={`px-4 py-2 rounded-md text-sm font-bold flex items-center gap-2 transition ${tab === "queue" ? "bg-[#D4AF37] text-black" : "text-zinc-400 hover:text-zinc-100"}`}
           ><Play size={14} /> Fila ativa</button>
-          {!isAtendente && <button
+          {!hideDeliveredHistory && <button
             onClick={() => setTab("history")}
             data-testid="tab-history"
             className={`px-4 py-2 rounded-md text-sm font-bold flex items-center gap-2 transition ${tab === "history" ? "bg-[#D4AF37] text-black" : "text-zinc-400 hover:text-zinc-100"}`}
@@ -82,7 +83,7 @@ function KitchenPanel({ kind, title, icon: TitleIcon, hideHeader }) {
         </div>
       </div>
 
-      {(isAtendente || tab === "queue") ? (
+      {hideDeliveredHistory || tab === "queue" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {columns.map((status) => {
             const list = items.filter((i) => i.status === status);
