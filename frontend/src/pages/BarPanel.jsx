@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Beer, CheckCircle2, Coins, Gift, BellRing } from "lucide-react";
 import KitchenPanel from "./KitchenPanel";
+import CortesiaDetalhes from "./CortesiaDetalhes";
 import api from "../lib/api";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -21,6 +22,7 @@ export default function BarPanel() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [reminder, setReminder] = useState(false);
+  const [showCortesias, setShowCortesias] = useState(false);
   useEffect(() => {
     let active = true;
     const check = async () => {
@@ -67,10 +69,11 @@ export default function BarPanel() {
         {!isAtendente && <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
           <StatCard icon={CheckCircle2} label="Bebidas entregues (hoje)" value={stats.total} color="#D4AF37" />
           <StatCard icon={Coins} label="Pagas" value={stats.paid} color="#4ade80" />
-          <StatCard icon={Gift} label="Cortesia" value={stats.cortesia} color="#f472b6" />
+          <button type="button" onClick={() => setShowCortesias(true)} className="text-left rounded-2xl focus:outline-none focus:ring-2 focus:ring-pink-400" aria-label="Ver detalhes das cortesias do Bar"><StatCard icon={Gift} label="Cortesia" value={stats.cortesia} color="#f472b6" /></button>
         </div>}
         {!isAtendente && <p className="text-[10px] text-zinc-600 uppercase tracking-widest">* Contagem de bebidas marcadas como entregues; pendentes e canceladas não entram.</p>}
       </div>
+      {showCortesias && !isAtendente && <CortesiaDetalhes kind="bar" onClose={() => setShowCortesias(false)} />}
       <KitchenPanel kind="bar" title="Bar" icon={Beer} hideHeader />
     </div>
   );
