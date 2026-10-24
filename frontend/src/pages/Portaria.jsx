@@ -516,15 +516,25 @@ function PortariaThermalReport({ report, onDismiss }) {
     setSharing(true);
     try {
       // Gera uma imagem PNG real, não um link nem uma mensagem de texto.
+      // O tamanho da imagem acompanha a quantidade de faixas de preço e
+      // deixa margem real abaixo do rodapé, sem cortar nenhuma informação.
       const canvas = document.createElement("canvas");
       const scale = 2;
-      canvas.width = 640 * scale;
+      const width = 640;
       const linhasPreco = porSexo("mulher").length + porSexo("homem").length;
-      canvas.height = (1010 + linhasPreco * 34) * scale;
+      const yInicial = 342;
+      const alturaSexos = 2 * (36 + 44) + linhasPreco * 34;
+      const yAposSexos = yInicial + alturaSexos;
+      const yRodape = yAposSexos + 35 + 4 * 38 + 40 + 44 + 35 + 4 * 36;
+      const rodapeTextoY = yRodape + 55;
+      const height = Math.ceil(rodapeTextoY + 72);
+      canvas.width = width * scale;
+      canvas.height = height * scale;
       const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Não foi possível preparar a imagem");
       ctx.scale(scale, scale);
       ctx.fillStyle = "#202020";
-      ctx.fillRect(0, 0, 640, canvas.height / scale);
+      ctx.fillRect(0, 0, width, height);
       ctx.fillStyle = "#fff";
       ctx.textBaseline = "middle";
       ctx.textAlign = "center";
@@ -533,16 +543,24 @@ function PortariaThermalReport({ report, onDismiss }) {
       ctx.font = "bold 19px Arial";
       ctx.fillText("FECHAMENTO DE CAIXA - PORTARIA", 320, 92);
       const divider = (y) => {
-        ctx.strokeStyle = "#777";
-        ctx.setLineDash([7, 6]);
-        ctx.beginPath(); ctx.moveTo(35, y); ctx.lineTo(605, y); ctx.stroke();
+        ctx.save();
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 1.5;
         ctx.setLineDash([]);
+        ctx.beginPath(); ctx.moveTo(35, y); ctx.lineTo(605, y); ctx.stroke();
+        ctx.restore();
       };
       const row = (label, value, y, bold = false) => {
         ctx.fillStyle = "#fff";
         ctx.font = `${bold ? "bold " : ""}${bold ? 22 : 19}px Arial`;
-        ctx.textAlign = "left"; ctx.fillText(label, 35, y);
-        ctx.textAlign = "right"; ctx.fillText(String(value), 605, y);
+        const left = String(label);
+        const right = String(value);
+        const maxRight = 260;
+        const maxLeft = 285;
+        ctx.textAlign = "left";
+        ctx.fillText(left, 35, y, maxLeft);
+        ctx.textAlign = "right";
+        ctx.fillText(right, 605, y, maxRight);
       };
       divider(125);
       row("Caixa", report.name || "Caixa Portaria", 160);
@@ -550,8 +568,7 @@ function PortariaThermalReport({ report, onDismiss }) {
       row("Abertura", formatDate(report.opened_at), 236);
       row("Fechamento", formatDate(report.closed_at), 274);
       divider(307);
-      // Altura dinâmica: cada faixa de preço aparece na imagem do WhatsApp.
-      let y = 342;
+      let y = yInicial;
       for (const [sexo, titulo] of [["mulher", "MULHERES"], ["homem", "HOMENS"]]) {
         row(titulo, `${sexo === "mulher" ? report.mulheres || 0 : report.homens || 0} pessoas`, y, true); y += 36;
         for (const item of porSexo(sexo)) {
@@ -573,8 +590,16 @@ function PortariaThermalReport({ report, onDismiss }) {
       row("Dinheiro contado", formatBRL(report.counted?.dinheiro || 0), y); y += 36;
       row("Diferença", formatBRL(report.differences?.dinheiro || 0), y, true);
       ctx.textAlign = "center";
+      ctx.fillStyle = "#fff";
       ctx.font = "17px Arial";
-      ctx.fillText("Fechamento registrado no sistema", 320, y + 55);
+      ctx.fillText("Fechamento registrado no sistema", 320, y + 55, 535);
+      // Moldura branca contínua, com cantos arredondados e margem de segurança.
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.roundRect(16, 16, width - 32, height - 32, 18);
+      ctx.stroke();
       const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
 
       if (!blob) throw new Error("Não foi possível gerar a imagem");
