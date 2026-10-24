@@ -16,6 +16,7 @@ export default function CaixaPanel() {
   const [search, setSearch] = useState("");
   const [receipt, setReceipt] = useState(null);
   const [printing, setPrinting] = useState(false);
+  const [sharingClose, setSharingClose] = useState(false);
   const closePrintingRef = useRef(false);
   const closeBusyRef = useRef(false);
   const [closeBusy, setCloseBusy] = useState(false);
@@ -152,6 +153,83 @@ export default function CaixaPanel() {
       }
     } catch (e) { toast.error(`Falha ao imprimir: ${e.message || e}`); }
     finally { closePrintingRef.current = false; setPrinting(false); }
+  };
+
+
+  // Fotografa o próprio relatório visível, sem recriar o layout no canvas.
+  const shareCloseImage = async () => {
+    if (!closeModal?.closed || sharingClose) return;
+    const source = document.querySelector('[data-testid="close-cashier-report"]');
+    if (!source) return toast.error("Relatório não encontrado na tela");
+    setSharingClose(true);
+    let objectUrl;
+    try {
+      // Clona somente o cartão do fechamento; botões não fazem parte da imagem.
+      const copy = source.cloneNode(true);
+      const copyStyles = (original, cloned) => {
+        const computed = window.getComputedStyle(original);
+        for (const property of computed) {
+          cloned.style.setProperty(property, computed.getPropertyValue(property), computed.getPropertyPriority(property));
+        }
+        for (let i = 0; i < original.children.length; i++) {
+          copyStyles(original.children[i], cloned.children[i]);
+        }
+      };
+      copyStyles(source, copy);
+      const width = Math.ceil(source.getBoundingClientRect().width);
+      copy.style.width = `${width}px`;
+      copy.style.maxWidth = "none";
+      copy.style.height = "auto";
+      copy.style.maxHeight = "none";
+      copy.style.overflow = "visible";
+      const holder = document.createElement("div");
+      holder.style.cssText = `position:fixed;left:-10000px;top:0;width:${width}px;visibility:hidden;pointer-events:none;`;
+      holder.appendChild(copy);
+      document.body.appendChild(holder);
+      const height = Math.ceil(copy.scrollHeight) + 2;
+      holder.remove();
+      const serialized = new XMLSerializer().serializeToString(copy);
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px;background:#121215">${serialized}</div></foreignObject></svg>`;
+      objectUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = () => reject(new Error("O celular não conseguiu capturar o relatório. Tente pelo Chrome."));
+        img.src = objectUrl;
+      });
+      const canvas = document.createElement("canvas");
+      const scale = 3;
+      canvas.width = width * scale;
+      canvas.height = height * scale;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Falha ao criar PNG");
+      ctx.fillStyle = "#121215";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.scale(scale, scale);
+      ctx.drawImage(img, 0, 0, width, height);
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+      if (!blob) throw new Error("Não foi possível salvar a imagem do relatório");
+      const file = new File([blob], "fechamento-caixa-dlotus.png", { type: "image/png" });
+      if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+        try { await navigator.share({ files: [file] }); }
+        catch (e) { if (e.name !== "AbortError") throw e; }
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = file.name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+        toast.info("Imagem salva. Envie pelo WhatsApp.");
+      }
+    } catch (e) {
+      toast.error(e.message || "Não foi possível compartilhar a imagem");
+    } finally {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      setSharingClose(false);
+    }
   };
 
   return (
@@ -334,6 +412,8 @@ export default function CaixaPanel() {
           onClose={() => setCloseModal(null)}
           onConfirm={confirmClose}
           onPrint={printReport}
+          onShare={shareCloseImage}
+          sharing={sharingClose}
           printing={printing}
           closeBusy={closeBusy}
         />
@@ -342,12 +422,13 @@ export default function CaixaPanel() {
   );
 }
 
-function CloseCashierModal({ state, onClose, onConfirm, onPrint, printing, closeBusy }) {
+function CloseCashierModal({ state, onClose, onConfirm, onPrint, onShare, sharing, printing, closeBusy }) {
   const { cashier, report, closed } = state;
   const t = report.sales_by_method || {};
   return (
     <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 overflow-y-auto">
       <div className="bg-[#121215] border border-[#D4AF37]/40 rounded-2xl p-6 max-w-md w-full my-8" data-testid="close-cashier-modal">
+        <div data-testid="close-cashier-report">
         <div className="text-center mb-5">
           <p className="text-xs uppercase tracking-[0.3em] text-[#D4AF37]">D'Lotus Lounge Bar</p>
           <h3 className="font-display text-2xl font-bold text-zinc-100 mt-1">
@@ -357,7 +438,8 @@ function CloseCashierModal({ state, onClose, onConfirm, onPrint, printing, close
         </div>
 
         <div className="bg-[#0A0A0C] rounded-xl p-4 space-y-2 text-sm mb-4 mono">
-          <div className="flex justify-between"><span className="text-zinc-400">Aberto em</span><span className="text-zinc-100">{formatDate(report.opened_at)}</span></div>
+          <div className="flex justify-between gap-3"><span className="text-zinc-400">Aberto em</span><span className="text-zinc-100">{formatDate(report.opened_at)}</span></div>
+          {closed && report.closed_at && <div className="flex justify-between gap-3"><span className="text-zinc-400">Fechado em</span><span className="text-zinc-100">{formatDate(report.closed_at)}</span></div>}
           {report.opened_by_name && <div className="flex justify-between"><span className="text-zinc-400">Por</span><span className="text-zinc-100">{report.opened_by_name}</span></div>}
           <div className="flex justify-between"><span className="text-zinc-400">Troco inicial</span><span className="text-[#D4AF37] font-bold">{formatBRL(report.initial_change)}</span></div>
           <div className="border-t border-white/5 pt-2 flex justify-between"><span className="text-zinc-400">Vendas</span><span className="text-zinc-100">{report.orders_count} ({report.items_sold} itens)</span></div>
@@ -386,11 +468,14 @@ function CloseCashierModal({ state, onClose, onConfirm, onPrint, printing, close
           </div>
         </div>
 
+        </div>
+        <div className="mt-4" />
         {closed ? (
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <button onClick={onPrint} disabled={printing} data-testid="print-close-report" className="flex-1 py-3 bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#C5A059] text-black font-bold rounded-xl flex items-center justify-center gap-2">
               <Printer size={14} /> {printing ? "Imprimindo..." : "Imprimir Relatório (80 mm)"}
             </button>
+            <button onClick={onShare} disabled={sharing} className="px-4 py-3 bg-emerald-700 text-white font-bold rounded-xl disabled:opacity-50">{sharing ? "Gerando..." : "WhatsApp / Imagem"}</button>
             <button onClick={onClose} className="px-5 py-3 bg-[#18181D] text-zinc-300 rounded-xl">Fechar</button>
           </div>
         ) : (
