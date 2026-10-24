@@ -156,80 +156,94 @@ export default function CaixaPanel() {
   };
 
 
-  // Fotografa o próprio relatório visível, sem recriar o layout no canvas.
+  // PNG desenhado diretamente: evita o erro de segurança "Tainted canvas" no Android.
   const shareCloseImage = async () => {
     if (!closeModal?.closed || sharingClose) return;
-    const source = document.querySelector('[data-testid="close-cashier-report"]');
-    if (!source) return toast.error("Relatório não encontrado na tela");
     setSharingClose(true);
-    let objectUrl;
     try {
-      // Clona somente o cartão do fechamento; botões não fazem parte da imagem.
-      const copy = source.cloneNode(true);
-      const copyStyles = (original, cloned) => {
-        const computed = window.getComputedStyle(original);
-        for (const property of computed) {
-          cloned.style.setProperty(property, computed.getPropertyValue(property), computed.getPropertyPriority(property));
-        }
-        for (let i = 0; i < original.children.length; i++) {
-          copyStyles(original.children[i], cloned.children[i]);
-        }
-      };
-      copyStyles(source, copy);
-      const width = Math.ceil(source.getBoundingClientRect().width);
-      copy.style.width = `${width}px`;
-      copy.style.maxWidth = "none";
-      copy.style.height = "auto";
-      copy.style.maxHeight = "none";
-      copy.style.overflow = "visible";
-      const holder = document.createElement("div");
-      holder.style.cssText = `position:fixed;left:-10000px;top:0;width:${width}px;visibility:hidden;pointer-events:none;`;
-      holder.appendChild(copy);
-      document.body.appendChild(holder);
-      const height = Math.ceil(copy.scrollHeight) + 2;
-      holder.remove();
-      const serialized = new XMLSerializer().serializeToString(copy);
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px;background:#121215">${serialized}</div></foreignObject></svg>`;
-      objectUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
-      const img = new Image();
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = () => reject(new Error("O celular não conseguiu capturar o relatório. Tente pelo Chrome."));
-        img.src = objectUrl;
-      });
+      const { cashier, report } = closeModal;
+      const fmt = (v) => formatBRL(v || 0);
+      const payments = report.sales_by_method || {};
+      const sangrias = report.sangrias || [];
+      const rows1 = [
+        ["Aberto em", formatDate(report.opened_at)],
+        ...(report.closed_at ? [["Fechado em", formatDate(report.closed_at)]] : []),
+        ...(report.opened_by_name ? [["Por", report.opened_by_name]] : []),
+        ["Troco inicial", fmt(report.initial_change), "blue"],
+        ["Vendas", `${report.orders_count || 0} (${report.items_sold || 0} itens)`],
+      ];
+      const rows2 = [
+        ["DINHEIRO", fmt(payments.dinheiro)],
+        ["PIX", fmt(payments.pix)],
+        ["CREDITO", fmt(payments.credito)],
+        ["DEBITO", fmt(payments.debito)],
+        [`Sangrias (${sangrias.length})`, `- ${fmt(report.sangrias_total)}`, "yellow"],
+        ...sangrias.map(x => [String(x.reason || "Sangria"), fmt(x.amount)]),
+        ["Dinheiro esperado em caixa", fmt(report.expected_cash), "green"],
+      ];
+      const width = 720, scale = 2, pad = 38;
+      const firstHeight = 34 + rows1.length * 44;
+      const secondHeight = 80 + rows2.length * 46;
+      const height = 230 + firstHeight + secondHeight + 125;
       const canvas = document.createElement("canvas");
-      const scale = 3;
-      canvas.width = width * scale;
-      canvas.height = height * scale;
+      canvas.width = width * scale; canvas.height = height * scale;
       const ctx = canvas.getContext("2d");
-      if (!ctx) throw new Error("Falha ao criar PNG");
-      ctx.fillStyle = "#121215";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      if (!ctx) throw new Error("Canvas indisponível");
       ctx.scale(scale, scale);
-      ctx.drawImage(img, 0, 0, width, height);
-      const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
-      if (!blob) throw new Error("Não foi possível salvar a imagem do relatório");
-      const file = new File([blob], "fechamento-caixa-dlotus.png", { type: "image/png" });
-      if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
-        try { await navigator.share({ files: [file] }); }
-        catch (e) { if (e.name !== "AbortError") throw e; }
-      } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = file.name;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 60000);
-        toast.info("Imagem salva. Envie pelo WhatsApp.");
+      const color = { white: "#f4f4f5", muted: "#a1a1aa", blue: "#38bdf8", yellow: "#fbbf24", green: "#34d399" };
+      const rounded = (x,y,w,h,r,fill,stroke) => {
+        ctx.beginPath(); ctx.roundRect(x,y,w,h,r);
+        if(fill){ctx.fillStyle=fill;ctx.fill();}
+        if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.stroke();}
+      };
+      const line = (y) => {ctx.strokeStyle="#ffffff";ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(pad+20,y);ctx.lineTo(width-pad-20,y);ctx.stroke();};
+      const txt = (t,x,y,size=22,c=color.white,bold=false,align="left",max) => {
+        ctx.font=`${bold?"700":"500"} ${size}px Arial, sans-serif`;
+        ctx.fillStyle=c;ctx.textAlign=align;ctx.textBaseline="middle";
+        ctx.fillText(String(t ?? ""),x,y,max);
+      };
+      ctx.fillStyle="#121215";ctx.fillRect(0,0,width,height);
+      rounded(14,14,width-28,height-28,25,null,"#ffffff");
+      txt("D'LOTUS LOUNGE BAR",width/2,61,18,color.blue,true,"center");
+      txt("✓ Caixa Fechado",width/2,105,34,color.white,true,"center");
+      txt(cashier.name,width/2,145,21,color.muted,false,"center");
+      let y=175;
+      rounded(pad,y,width-2*pad,firstHeight,18,"#0a0a0c");
+      let ry=y+31;
+      for(const [label,value,kind] of rows1){
+        txt(label,pad+22,ry,20,color.muted);
+        txt(value,width-pad-22,ry,20,color[kind]||color.white,!!kind,"right",350);
+        ry+=44;
       }
-    } catch (e) {
-      toast.error(e.message || "Não foi possível compartilhar a imagem");
-    } finally {
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-      setSharingClose(false);
-    }
+      y+=firstHeight+24;
+      rounded(pad,y,width-2*pad,secondHeight,18,"#0a0a0c");
+      txt("ENTRADAS POR FORMA DE PAGAMENTO",pad+22,y+33,18,color.blue,true,"left",width-2*pad-44);
+      ry=y+78;
+      for(const [label,value,kind] of rows2){
+        if(label.startsWith("Sangrias")||label==="Dinheiro esperado em caixa") line(ry-23);
+        txt(label,pad+22,ry,19,color[kind]||color.white,!!kind,"left",340);
+        txt(value,width-pad-22,ry,20,color[kind]||color.white,!!kind,"right",270);
+        ry+=46;
+      }
+      y+=secondHeight+24;
+      rounded(pad,y,width-2*pad,91,16,"#29251c","#8b6c28");
+      txt("TOTAL VENDAS",pad+20,y+45,19,color.blue,false);
+      txt(fmt(report.total_sales),width-pad-20,y+45,36,color.blue,true,"right",330);
+      const blob = await new Promise(resolve=>canvas.toBlob(resolve,"image/png"));
+      if(!blob) throw new Error("Não foi possível gerar PNG");
+      const file = new File([blob],"fechamento-caixa-dlotus.png",{type:"image/png"});
+      if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
+        try{await navigator.share({files:[file]});}
+        catch(e){if(e.name!=="AbortError")throw e;}
+      }else{
+        const url=URL.createObjectURL(blob);
+        const a=document.createElement("a");a.href=url;a.download=file.name;
+        document.body.appendChild(a);a.click();a.remove();
+        setTimeout(()=>URL.revokeObjectURL(url),60000);
+        toast.info("Imagem PNG salva. Envie pelo WhatsApp.");
+      }
+    }catch(e){toast.error(e.message||"Erro ao compartilhar imagem");}
+    finally{setSharingClose(false);}
   };
 
   return (
