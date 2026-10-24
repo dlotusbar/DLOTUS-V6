@@ -404,36 +404,40 @@ function CloseModal({ cash, totals, onClose, onDone }) {
         total_pessoas: totals.total_pessoas,
         homens: totals.homens,
         mulheres: totals.mulheres,
-        valor_homens: totals.valor_homens,
-        valor_mulheres: totals.valor_mulheres,
+        detalhamento_precos: res.detalhamento_precos || totals.detalhamento_precos,
       });
     } catch (e) { toast.error(e.response?.data?.detail || "Erro"); }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-[#121215] border border-[#D4AF37]/30 rounded-2xl p-6 max-w-2xl w-full my-8">
+    <div className="fixed inset-0 bg-black/80 z-50 flex items-start justify-center p-2 sm:p-4 overflow-y-auto">
+      <div className="bg-[#121215] border border-[#D4AF37]/30 rounded-2xl p-4 sm:p-6 max-w-2xl w-full my-4 sm:my-8 min-w-0">
         <h3 className="font-display text-2xl font-bold gold-text mb-1">Fechamento de Caixa — Portaria</h3>
         <p className="text-sm text-zinc-500 mb-5">{cash.opened_by_name} · {formatDate(cash.opened_at)}</p>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-5">
-          <StatCard label="Homens" value={`${totals.homens} · ${formatBRL(totals.valor_homens ?? 0)}`} />
-          <StatCard label="Mulheres" value={`${totals.mulheres} · ${formatBRL(totals.valor_mulheres ?? 0)}`} />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-5">
+          <StatCard label="Homens" value={totals.homens} />
+          <StatCard label="Mulheres" value={totals.mulheres} />
           <StatCard label="Total" value={totals.total_pessoas} />
           <StatCard label="Arrecadado" value={formatBRL(totals.total)} gold />
         </div>
 
-        <div className="space-y-2 mb-4">
-          <div className="grid grid-cols-5 gap-2 text-xs uppercase tracking-widest text-zinc-500 px-2">
-            <span>Forma</span><span className="text-right col-span-1">Esperado</span><span className="text-right col-span-1">Contado</span><span className="text-right col-span-1">Dif.</span><span></span>
-          </div>
+        <div className="space-y-3 mb-4">
+          <h4 className="font-bold text-zinc-100">Conferência dos recebimentos</h4>
           {["dinheiro", "pix", "credito", "debito"].map((k) => (
-            <div key={k} className="grid grid-cols-5 gap-2 items-center bg-[#0A0A0C] rounded-lg p-2">
-              <span className="capitalize text-zinc-200">{k}</span>
-              <span className="mono text-right text-zinc-400">{formatBRL(expected[k])}</span>
-              <input type="number" step="0.01" value={counted[k]} data-testid={`counted-${k}`} onChange={(e) => setCounted({ ...counted, [k]: e.target.value })} className="px-2 py-1 bg-[#121215] border border-white/10 rounded mono text-right text-zinc-100" />
-              <span className={`mono text-right ${diffs[k] === 0 ? "text-emerald-400" : diffs[k] > 0 ? "text-blue-400" : "text-red-400"}`}>{formatBRL(diffs[k])}</span>
-              <span className="text-xs text-zinc-500">{diffs[k] === 0 ? "OK" : diffs[k] > 0 ? "sobra" : "falta"}</span>
+            <div key={k} className="rounded-xl bg-[#0A0A0C] border border-white/10 p-3 min-w-0">
+              <div className="flex justify-between items-center gap-3 mb-2 flex-wrap">
+                <span className="capitalize font-semibold text-zinc-100">{k === "credito" ? "Crédito" : k === "debito" ? "Débito" : k}</span>
+                <span className="text-sm text-zinc-400">Esperado: {formatBRL(expected[k])}</span>
+              </div>
+              <label className="block text-xs text-zinc-400 mb-1" htmlFor={`contado-${k}`}>Valor conferido (R$)</label>
+              <input id={`contado-${k}`} type="number" inputMode="decimal" min="0" step="0.01"
+                value={counted[k]} data-testid={`counted-${k}`}
+                onChange={(e) => setCounted({ ...counted, [k]: e.target.value })}
+                className="w-full min-w-0 box-border px-3 py-3 bg-[#18181D] border border-white/20 rounded-lg mono text-lg text-zinc-100" />
+              <div className={`text-sm mt-2 ${diffs[k] === 0 ? "text-emerald-400" : diffs[k] > 0 ? "text-blue-400" : "text-red-400"}`}>
+                Diferença: {formatBRL(diffs[k])} — {diffs[k] === 0 ? "OK" : diffs[k] > 0 ? "sobra" : "falta"}
+              </div>
             </div>
           ))}
         </div>
@@ -446,7 +450,7 @@ function CloseModal({ cash, totals, onClose, onDone }) {
 
         <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Observações do fechamento (opcional)" className="w-full px-3 py-2 bg-[#0A0A0C] border border-white/10 rounded-lg text-zinc-100 mb-4" rows="2" />
 
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <button onClick={onClose} className="flex-1 py-3 bg-[#18181D] rounded-lg text-zinc-300">Cancelar</button>
           <button onClick={confirm} data-testid="confirm-close-cash" className="flex-1 py-3 bg-gradient-to-r from-[#D4AF37] to-[#C5A059] text-black font-bold rounded-lg">Confirmar Fechamento</button>
         </div>
@@ -464,6 +468,9 @@ function PortariaThermalReport({ report, onDismiss }) {
   const credito = Number(methods.credito || 0);
   const debito = Number(methods.debito || 0);
   const total = Number(report.total_sales ?? (cash + pix + credito + debito));
+  const precos = report.detalhamento_precos || { homem: [], mulher: [] };
+  const porSexo = (sexo) => (precos[sexo] || []);
+  const somaSexo = (sexo) => porSexo(sexo).reduce((s, item) => s + Number(item.total || 0), 0);
   const print = async () => {
     if (printing) return;
     setPrinting(true);
@@ -478,7 +485,7 @@ function PortariaThermalReport({ report, onDismiss }) {
           initial_change: report.initial_amount || 0, sales_by_method: methods,
           total_sales: total, total_pessoas: report.total_pessoas,
           homens: report.homens, mulheres: report.mulheres,
-          valor_homens: report.valor_homens, valor_mulheres: report.valor_mulheres,
+          detalhamento_precos: precos,
           sangrias_total: report.sangrias_total || 0,
           expected_cash: report.expected?.dinheiro,
           expected: report.expected, counted: report.counted,
@@ -503,30 +510,118 @@ function PortariaThermalReport({ report, onDismiss }) {
     } catch (e) { toast.error(e.message || "Falha na impressão"); }
     finally { setPrinting(false); }
   };
+  const [sharing, setSharing] = useState(false);
+  const shareImage = async () => {
+    if (sharing) return;
+    setSharing(true);
+    try {
+      // Gera uma imagem PNG real, não um link nem uma mensagem de texto.
+      const canvas = document.createElement("canvas");
+      const scale = 2;
+      canvas.width = 640 * scale;
+      const linhasPreco = porSexo("mulher").length + porSexo("homem").length;
+      canvas.height = (1010 + linhasPreco * 34) * scale;
+      const ctx = canvas.getContext("2d");
+      ctx.scale(scale, scale);
+      ctx.fillStyle = "#202020";
+      ctx.fillRect(0, 0, 640, canvas.height / scale);
+      ctx.fillStyle = "#fff";
+      ctx.textBaseline = "middle";
+      ctx.textAlign = "center";
+      ctx.font = "bold 27px Arial";
+      ctx.fillText("D'LOTUS LOUNGE BAR", 320, 52);
+      ctx.font = "bold 19px Arial";
+      ctx.fillText("FECHAMENTO DE CAIXA - PORTARIA", 320, 92);
+      const divider = (y) => {
+        ctx.strokeStyle = "#777";
+        ctx.setLineDash([7, 6]);
+        ctx.beginPath(); ctx.moveTo(35, y); ctx.lineTo(605, y); ctx.stroke();
+        ctx.setLineDash([]);
+      };
+      const row = (label, value, y, bold = false) => {
+        ctx.fillStyle = "#fff";
+        ctx.font = `${bold ? "bold " : ""}${bold ? 22 : 19}px Arial`;
+        ctx.textAlign = "left"; ctx.fillText(label, 35, y);
+        ctx.textAlign = "right"; ctx.fillText(String(value), 605, y);
+      };
+      divider(125);
+      row("Caixa", report.name || "Caixa Portaria", 160);
+      row("Operador", report.opened_by_name || "-", 198);
+      row("Abertura", formatDate(report.opened_at), 236);
+      row("Fechamento", formatDate(report.closed_at), 274);
+      divider(307);
+      // Altura dinâmica: cada faixa de preço aparece na imagem do WhatsApp.
+      let y = 342;
+      for (const [sexo, titulo] of [["mulher", "MULHERES"], ["homem", "HOMENS"]]) {
+        row(titulo, `${sexo === "mulher" ? report.mulheres || 0 : report.homens || 0} pessoas`, y, true); y += 36;
+        for (const item of porSexo(sexo)) {
+          row(`${item.quantidade} x ${formatBRL(item.preco)}`, formatBRL(item.total), y); y += 34;
+        }
+        row(`Subtotal ${titulo.toLowerCase()}`, formatBRL(somaSexo(sexo)), y, true); y += 44;
+      }
+      divider(y); y += 35;
+      row("Dinheiro", formatBRL(cash), y); y += 38;
+      row("PIX", formatBRL(pix), y); y += 38;
+      row("Cartão (crédito)", formatBRL(credito), y); y += 38;
+      row("Cartão (débito)", formatBRL(debito), y); y += 38;
+      divider(y); y += 40;
+      row("TOTAL DE VENDAS", formatBRL(total), y, true); y += 44;
+      divider(y); y += 35;
+      row("Sangrias", formatBRL(report.sangrias_total || 0), y); y += 36;
+      row("Troco inicial", formatBRL(report.initial_amount || 0), y); y += 36;
+      row("Dinheiro esperado", formatBRL(report.expected?.dinheiro || 0), y); y += 36;
+      row("Dinheiro contado", formatBRL(report.counted?.dinheiro || 0), y); y += 36;
+      row("Diferença", formatBRL(report.differences?.dinheiro || 0), y, true);
+      ctx.textAlign = "center";
+      ctx.font = "17px Arial";
+      ctx.fillText("Fechamento registrado no sistema", 320, y + 55);
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+
+      if (!blob) throw new Error("Não foi possível gerar a imagem");
+      const file = new File([blob], "fechamento-portaria-dlotus.png", { type: "image/png" });
+      if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+        try { await navigator.share({ files: [file] }); }
+        catch (err) { if (err.name !== "AbortError") throw err; }
+      } else {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url; link.download = file.name;
+        document.body.appendChild(link); link.click(); link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+        toast.info("Imagem salva. Abra o WhatsApp e envie a imagem.");
+      }
+    } catch (e) { toast.error(e.message || "Não foi possível compartilhar a imagem"); }
+    finally { setSharing(false); }
+  };
   const Line = ({ label, value, strong = false }) => <div className={`line flex justify-between gap-4 py-1 ${strong ? "strong font-bold" : ""}`}><span>{label}</span><span className="text-right">{value}</span></div>;
   return <div className="max-w-xl mx-auto space-y-4">
     <div className="rounded-xl bg-emerald-950/30 border border-emerald-500/40 p-4 text-emerald-300 font-semibold">✓ Caixa da Portaria fechado. Relatório disponível para impressão.</div>
-    <div id="portaria-cupom-80mm" className="mx-auto bg-white text-black rounded-md p-5 shadow-lg" style={{maxWidth:"80mm",fontFamily:"Arial, sans-serif",fontSize:12}}>
+    <div id="portaria-cupom-80mm" className="mx-auto bg-[#202020] text-white rounded-2xl p-5 shadow-lg" style={{maxWidth:"80mm",fontFamily:"Arial, sans-serif",fontSize:12,color:"#ffffff"}}>
       <h2 className="text-center text-base font-black">D'LOTUS LOUNGE BAR</h2>
       <h3 className="text-center font-bold mb-3">FECHAMENTO DE CAIXA - PORTARIA</h3>
-      <hr className="border-dashed border-black my-2" />
+      <hr className="border-dashed border-zinc-600 my-2" />
       <Line label="Caixa" value={report.name || "Caixa Portaria"} />
       <Line label="Operador" value={report.opened_by_name || "-"} />
       <Line label="Abertura" value={formatDate(report.opened_at)} />
       <Line label="Fechamento" value={formatDate(report.closed_at)} />
-      <hr className="border-dashed border-black my-2" />
-      <Line label={`Homens (${report.homens ?? 0})`} value={formatBRL(report.valor_homens ?? 0)} />
-      <Line label={`Mulheres (${report.mulheres ?? 0})`} value={formatBRL(report.valor_mulheres ?? 0)} />
-      <Line label="Total de pessoas" value={String(report.total_pessoas ?? 0)} strong />
-      <Line label="Total portaria" value={formatBRL((report.valor_homens ?? 0) + (report.valor_mulheres ?? 0))} strong />
-      <hr className="border-dashed border-black my-2" />
+      <hr className="border-dashed border-zinc-600 my-2" />
+      <hr className="border-dashed border-zinc-600 my-2" />
+      {[["mulher", "MULHERES"], ["homem", "HOMENS"]].map(([sexo, titulo]) => (
+        <div key={sexo}>
+          <Line label={titulo} value={`${sexo === "mulher" ? report.mulheres || 0 : report.homens || 0} pessoas`} strong />
+          {porSexo(sexo).map((item) => <Line key={item.preco} label={`${item.quantidade} x ${formatBRL(item.preco)}`} value={formatBRL(item.total)} />)}
+          <Line label={`Subtotal ${titulo.toLowerCase()}`} value={formatBRL(somaSexo(sexo))} strong />
+        </div>
+      ))}
+      <hr className="border-dashed border-zinc-600 my-2" />
+      <Line label="Total de pessoas" value={String(report.total_pessoas || 0)} strong />
       <Line label="Dinheiro" value={formatBRL(cash)} />
       <Line label="PIX" value={formatBRL(pix)} />
       <Line label="Cartão (crédito)" value={formatBRL(credito)} />
       <Line label="Cartão (débito)" value={formatBRL(debito)} />
-      <hr className="border-dashed border-black my-2" />
+      <hr className="border-dashed border-zinc-600 my-2" />
       <div className="big text-base"><Line label="TOTAL DE VENDAS" value={formatBRL(total)} strong /></div>
-      <hr className="border-dashed border-black my-2" />
+      <hr className="border-dashed border-zinc-600 my-2" />
       <Line label="Sangrias" value={formatBRL(report.sangrias_total || 0)} />
       <Line label="Troco inicial" value={formatBRL(report.initial_amount || 0)} />
       <Line label="Dinheiro esperado" value={formatBRL(report.expected?.dinheiro || 0)} />
@@ -536,6 +631,7 @@ function PortariaThermalReport({ report, onDismiss }) {
     </div>
     <div className="flex gap-3 flex-wrap">
       <button type="button" disabled={printing} onClick={print} className="flex-1 min-w-40 flex items-center justify-center gap-2 bg-white text-black font-bold rounded-lg p-3 disabled:opacity-50"><Printer size={18}/>{printing ? "Enviando..." : "Imprimir 80 mm"}</button>
+      <button type="button" disabled={sharing} onClick={shareImage} className="flex-1 min-w-40 rounded-lg p-3 bg-emerald-700 text-white font-bold disabled:opacity-50">{sharing ? "Gerando imagem..." : "Compartilhar imagem / WhatsApp"}</button>
       <button type="button" onClick={onDismiss} className="flex-1 min-w-40 rounded-lg p-3 bg-zinc-800 text-white">Voltar à Portaria</button>
     </div>
     <p className="text-xs text-zinc-400 text-center">O fechamento permanece salvo no Histórico da Portaria.</p>
@@ -662,8 +758,6 @@ function DetailModal({ data, onClose }) {
       total_pessoas: t.total_pessoas,
       homens: t.homens,
       mulheres: t.mulheres,
-      valor_homens: t.valor_homens,
-      valor_mulheres: t.valor_mulheres,
       expected_cash: (t.totals?.dinheiro || 0) + (c.initial_amount || 0),
       counted: c.counted,
       expected: c.expected,
@@ -677,8 +771,8 @@ function DetailModal({ data, onClose }) {
     }
   };
   return (
-    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 overflow-y-auto" onClick={onClose}>
-      <div className="bg-[#121215] border border-[#D4AF37]/30 rounded-2xl p-6 max-w-2xl w-full my-8" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/80 z-50 flex items-start justify-center p-2 sm:p-4 overflow-y-auto" onClick={onClose}>
+      <div className="bg-[#121215] border border-[#D4AF37]/30 rounded-2xl p-4 sm:p-6 max-w-2xl w-full my-4 sm:my-8 min-w-0" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between mb-4">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-[#D4AF37]">D'Lotus Lounge Bar</p>
@@ -693,8 +787,8 @@ function DetailModal({ data, onClose }) {
           <div><span className="text-zinc-500">Status:</span> <span className="text-zinc-100">{c.status}</span></div>
           <div><span className="text-zinc-500">Abertura:</span> <span className="mono text-zinc-100">{formatDate(c.opened_at)}</span></div>
           <div><span className="text-zinc-500">Fechamento:</span> <span className="mono text-zinc-100">{c.closed_at ? formatDate(c.closed_at) : "—"}</span></div>
-          <div><span className="text-zinc-500">Homens:</span> <span className="text-zinc-100">{t.homens} · {formatBRL(t.valor_homens ?? 0)}</span></div>
-          <div><span className="text-zinc-500">Mulheres:</span> <span className="text-zinc-100">{t.mulheres} · {formatBRL(t.valor_mulheres ?? 0)}</span></div>
+          <div><span className="text-zinc-500">Homens:</span> <span className="text-zinc-100">{t.homens}</span></div>
+          <div><span className="text-zinc-500">Mulheres:</span> <span className="text-zinc-100">{t.mulheres}</span></div>
           <div className="col-span-2"><span className="text-zinc-500">Total pessoas:</span> <span className="text-[#D4AF37] font-bold">{t.total_pessoas}</span></div>
         </div>
         <div className="bg-[#0A0A0C] rounded-lg p-3 space-y-1 text-sm mb-4">

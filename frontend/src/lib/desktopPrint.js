@@ -143,6 +143,14 @@ export function buildCashCloseHtml(report, opts = {}) {
   const dividerThick = `<div style="border-top:2px dashed #000;margin:5px 0;height:2px;"></div>`;
 
   const payRows = Object.entries(totals).map(([k, v]) => row(esc(k.toUpperCase()), brl(v))).join("");
+  const detail = report.detalhamento_precos;
+  const priceRows = detail ? [["mulher", "MULHERES"], ["homem", "HOMENS"]].map(([sexo, label]) => {
+    const items = detail[sexo] || [];
+    const subtotal = items.reduce((s, item) => s + Number(item.total || 0), 0);
+    return `<div class="lbl">${label}</div>` +
+      items.map(item => row(`${Number(item.quantidade)} x ${brl(item.preco)}`, brl(item.total))).join("") +
+      row(`SUBTOTAL ${label}`, brl(subtotal), true) + divider;
+  }).join("") : "";
 
   const diffBlock = report.counted ? `
     ${divider}
@@ -184,9 +192,8 @@ export function buildCashCloseHtml(report, opts = {}) {
   ${report.total_pessoas !== undefined ? row("Total pessoas", String(report.total_pessoas)) : ""}
   ${report.homens !== undefined ? row("Homens", String(report.homens)) : ""}
   ${report.mulheres !== undefined ? row("Mulheres", String(report.mulheres)) : ""}
-  ${report.valor_homens !== undefined ? row("Arrec. homens", brl(report.valor_homens), true) : ""}
-  ${report.valor_mulheres !== undefined ? row("Arrec. mulheres", brl(report.valor_mulheres), true) : ""}
   ${divider}
+  ${priceRows}
   <div class="lbl">Pagamentos</div>
   ${payRows}
   ${divider}

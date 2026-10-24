@@ -2424,25 +2424,35 @@ async def _calc_cash_totals(cash_id: str) -> dict:
     totals = {"dinheiro": 0.0, "pix": 0.0, "credito": 0.0, "debito": 0.0}
     homens = 0
     mulheres = 0
-    valor_homens = 0.0
-    valor_mulheres = 0.0
     for e in entries:
         totals[e["payment_method"]] = totals.get(e["payment_method"], 0) + float(e["amount"])
         if e["gender"] == "homem":
             homens += 1
-            valor_homens += float(e["amount"])
         else:
             mulheres += 1
-            valor_mulheres += float(e["amount"])
+    # Histórico por sexo e preço realmente cobrado, sem entradas canceladas.
+    por_preco = {"homem": {}, "mulher": {}}
+    for e in entries:
+        sexo = e.get("gender")
+        if sexo not in por_preco:
+            continue
+        centavos = round(float(e.get("amount") or 0) * 100)
+        item = por_preco[sexo].setdefault(centavos, {"quantidade": 0, "total_centavos": 0})
+        item["quantidade"] += 1
+        item["total_centavos"] += centavos
+    detalhamento_precos = {
+        sexo: [{"preco": centavos / 100, "quantidade": v["quantidade"], "total": v["total_centavos"] / 100}
+               for centavos, v in sorted(valores.items())]
+        for sexo, valores in por_preco.items()
+    }
     total = round(sum(totals.values()), 2)
     return {
+        "detalhamento_precos": detalhamento_precos,
         "totals": {k: round(v, 2) for k, v in totals.items()},
         "total": total,
         "homens": homens,
         "mulheres": mulheres,
         "total_pessoas": homens + mulheres,
-        "valor_homens": round(valor_homens, 2),
-        "valor_mulheres": round(valor_mulheres, 2),
     }
 
 
@@ -2511,9 +2521,8 @@ async def close_portaria_cash(cid: str, data: PortariaCashCloseIn, user: dict = 
         "homens": totals["homens"],
         "mulheres": totals["mulheres"],
         "total_pessoas": totals["total_pessoas"],
-        "valor_homens": totals["valor_homens"],
-        "valor_mulheres": totals["valor_mulheres"],
         "total_arrecadado": totals["total"],
+        "detalhamento_precos": totals["detalhamento_precos"],
         "sangrias_total": sangrias_total,
         "sangrias": sangrias,
         "notes": data.notes or "",
