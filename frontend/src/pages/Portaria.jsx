@@ -404,6 +404,8 @@ function CloseModal({ cash, totals, onClose, onDone }) {
         total_pessoas: totals.total_pessoas,
         homens: totals.homens,
         mulheres: totals.mulheres,
+        valor_homens: totals.valor_homens,
+        valor_mulheres: totals.valor_mulheres,
       });
     } catch (e) { toast.error(e.response?.data?.detail || "Erro"); }
   };
@@ -415,8 +417,8 @@ function CloseModal({ cash, totals, onClose, onDone }) {
         <p className="text-sm text-zinc-500 mb-5">{cash.opened_by_name} · {formatDate(cash.opened_at)}</p>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-5">
-          <StatCard label="Homens" value={totals.homens} />
-          <StatCard label="Mulheres" value={totals.mulheres} />
+          <StatCard label="Homens" value={`${totals.homens} · ${formatBRL(totals.valor_homens ?? 0)}`} />
+          <StatCard label="Mulheres" value={`${totals.mulheres} · ${formatBRL(totals.valor_mulheres ?? 0)}`} />
           <StatCard label="Total" value={totals.total_pessoas} />
           <StatCard label="Arrecadado" value={formatBRL(totals.total)} gold />
         </div>
@@ -476,6 +478,7 @@ function PortariaThermalReport({ report, onDismiss }) {
           initial_change: report.initial_amount || 0, sales_by_method: methods,
           total_sales: total, total_pessoas: report.total_pessoas,
           homens: report.homens, mulheres: report.mulheres,
+          valor_homens: report.valor_homens, valor_mulheres: report.valor_mulheres,
           sangrias_total: report.sangrias_total || 0,
           expected_cash: report.expected?.dinheiro,
           expected: report.expected, counted: report.counted,
@@ -511,6 +514,11 @@ function PortariaThermalReport({ report, onDismiss }) {
       <Line label="Operador" value={report.opened_by_name || "-"} />
       <Line label="Abertura" value={formatDate(report.opened_at)} />
       <Line label="Fechamento" value={formatDate(report.closed_at)} />
+      <hr className="border-dashed border-black my-2" />
+      <Line label={`Homens (${report.homens ?? 0})`} value={formatBRL(report.valor_homens ?? 0)} />
+      <Line label={`Mulheres (${report.mulheres ?? 0})`} value={formatBRL(report.valor_mulheres ?? 0)} />
+      <Line label="Total de pessoas" value={String(report.total_pessoas ?? 0)} strong />
+      <Line label="Total portaria" value={formatBRL((report.valor_homens ?? 0) + (report.valor_mulheres ?? 0))} strong />
       <hr className="border-dashed border-black my-2" />
       <Line label="Dinheiro" value={formatBRL(cash)} />
       <Line label="PIX" value={formatBRL(pix)} />
@@ -654,6 +662,8 @@ function DetailModal({ data, onClose }) {
       total_pessoas: t.total_pessoas,
       homens: t.homens,
       mulheres: t.mulheres,
+      valor_homens: t.valor_homens,
+      valor_mulheres: t.valor_mulheres,
       expected_cash: (t.totals?.dinheiro || 0) + (c.initial_amount || 0),
       counted: c.counted,
       expected: c.expected,
@@ -683,8 +693,8 @@ function DetailModal({ data, onClose }) {
           <div><span className="text-zinc-500">Status:</span> <span className="text-zinc-100">{c.status}</span></div>
           <div><span className="text-zinc-500">Abertura:</span> <span className="mono text-zinc-100">{formatDate(c.opened_at)}</span></div>
           <div><span className="text-zinc-500">Fechamento:</span> <span className="mono text-zinc-100">{c.closed_at ? formatDate(c.closed_at) : "—"}</span></div>
-          <div><span className="text-zinc-500">Homens:</span> <span className="text-zinc-100">{t.homens}</span></div>
-          <div><span className="text-zinc-500">Mulheres:</span> <span className="text-zinc-100">{t.mulheres}</span></div>
+          <div><span className="text-zinc-500">Homens:</span> <span className="text-zinc-100">{t.homens} · {formatBRL(t.valor_homens ?? 0)}</span></div>
+          <div><span className="text-zinc-500">Mulheres:</span> <span className="text-zinc-100">{t.mulheres} · {formatBRL(t.valor_mulheres ?? 0)}</span></div>
           <div className="col-span-2"><span className="text-zinc-500">Total pessoas:</span> <span className="text-[#D4AF37] font-bold">{t.total_pessoas}</span></div>
         </div>
         <div className="bg-[#0A0A0C] rounded-lg p-3 space-y-1 text-sm mb-4">

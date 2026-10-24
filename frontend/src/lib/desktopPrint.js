@@ -184,6 +184,8 @@ export function buildCashCloseHtml(report, opts = {}) {
   ${report.total_pessoas !== undefined ? row("Total pessoas", String(report.total_pessoas)) : ""}
   ${report.homens !== undefined ? row("Homens", String(report.homens)) : ""}
   ${report.mulheres !== undefined ? row("Mulheres", String(report.mulheres)) : ""}
+  ${report.valor_homens !== undefined ? row("Arrec. homens", brl(report.valor_homens), true) : ""}
+  ${report.valor_mulheres !== undefined ? row("Arrec. mulheres", brl(report.valor_mulheres), true) : ""}
   ${divider}
   <div class="lbl">Pagamentos</div>
   ${payRows}
