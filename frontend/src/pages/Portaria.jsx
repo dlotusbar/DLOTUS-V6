@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { CloseNeonPreview, shareClosePng } from "../lib/closeNeon";
 import api, { formatBRL, formatDate } from "../lib/api";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
@@ -523,97 +524,16 @@ function PortariaThermalReport({ report, onDismiss }) {
     if (sharing) return;
     setSharing(true);
     try {
-      const fmt = (v) => formatBRL(v || 0);
-      const rows1 = [
-        ["Aberto em", formatDate(report.opened_at)],
-        ["Fechado em", formatDate(report.closed_at)],
-        ["Por", report.opened_by_name || "-"],
-        ["Troco inicial", fmt(report.initial_amount), "blue"],
-        ["Pessoas", String(report.total_pessoas || 0)],
-      ];
-      const rows2 = [];
-      for (const [sexo, titulo] of [["mulher", "MULHERES"], ["homem", "HOMENS"]]) {
-        rows2.push([titulo, `${sexo === "mulher" ? report.mulheres || 0 : report.homens || 0} pessoas`, "blue"]);
-        for (const item of porSexo(sexo)) rows2.push([`${item.quantidade} x ${fmt(item.preco)}`, fmt(item.total)]);
-        rows2.push([`Subtotal ${titulo.toLowerCase()}`, fmt(somaSexo(sexo)), "green"]);
-      }
-      const rows3 = [
-        ["DINHEIRO", fmt(cash)], ["PIX", fmt(pix)],
-        ["CREDITO", fmt(credito)], ["DEBITO", fmt(debito)],
-        ["Sangrias", `- ${fmt(report.sangrias_total)}`, "yellow"],
-        ["Dinheiro esperado em caixa", fmt(report.expected?.dinheiro), "green"],
-        ["Dinheiro contado", fmt(report.counted?.dinheiro)],
-        ["Diferença", fmt(report.differences?.dinheiro)],
-      ];
-      const width = 720, scale = 2, pad = 38;
-      const firstHeight = 34 + rows1.length * 44;
-      const sexHeight = 80 + rows2.length * 46;
-      const payHeight = 80 + rows3.length * 46;
-      const height = 175 + firstHeight + 24 + sexHeight + 24 + payHeight + 24 + 91 + 42;
-      const canvas = document.createElement("canvas");
-      canvas.width = width * scale; canvas.height = height * scale;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) throw new Error("Canvas indisponível");
-      ctx.scale(scale, scale);
-      const color = {white:"#f4f4f5", muted:"#a1a1aa", blue:"#38bdf8", yellow:"#fbbf24", green:"#34d399"};
-      const rounded = (x,y,w,h,r,fill,stroke) => {
-        ctx.beginPath(); ctx.roundRect(x,y,w,h,r);
-        if(fill){ctx.fillStyle=fill;ctx.fill();}
-        if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.stroke();}
-      };
-      const txt = (t,x,y,size=22,c=color.white,bold=false,align="left",max) => {
-        ctx.font=`${bold?"700":"500"} ${size}px Arial, sans-serif`;
-        ctx.fillStyle=c;ctx.textAlign=align;ctx.textBaseline="middle";
-        ctx.fillText(String(t ?? ""),x,y,max);
-      };
-      const drawRows = (rows,y) => {
-        let ry=y;
-        for(const [label,value,kind] of rows){
-          txt(label,pad+22,ry,19,kind?color[kind]:color.muted,!!kind,"left",340);
-          txt(value,width-pad-22,ry,20,color[kind]||color.white,!!kind,"right",270);
-          ry+=46;
-        }
-      };
-      ctx.fillStyle="#121215";ctx.fillRect(0,0,width,height);
-      rounded(14,14,width-28,height-28,25,null,"#ffffff");
-      txt("D'LOTUS LOUNGE BAR",width/2,61,18,color.blue,true,"center");
-      txt("✓ Caixa Fechado",width/2,105,34,color.white,true,"center");
-      txt("Caixa Portaria",width/2,145,21,color.muted,false,"center");
-      let y=175;
-      rounded(pad,y,width-2*pad,firstHeight,18,"#0a0a0c");
-      drawRows(rows1,y+31);
-      y+=firstHeight+24;
-      rounded(pad,y,width-2*pad,sexHeight,18,"#0a0a0c");
-      txt("ENTRADAS POR SEXO E PREÇO",pad+22,y+33,18,color.blue,true);
-      drawRows(rows2,y+78);
-      y+=sexHeight+24;
-      rounded(pad,y,width-2*pad,payHeight,18,"#0a0a0c");
-      txt("ENTRADAS POR FORMA DE PAGAMENTO",pad+22,y+33,18,color.blue,true,"left",width-2*pad-44);
-      drawRows(rows3,y+78);
-      y+=payHeight+24;
-      rounded(pad,y,width-2*pad,91,16,"#29251c","#8b6c28");
-      txt("TOTAL VENDAS",pad+20,y+45,19,color.blue);
-      txt(fmt(total),width-pad-20,y+45,36,color.blue,true,"right",330);
-      const blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/png"));
-      if(!blob) throw new Error("Não foi possível gerar PNG");
-      const file=new File([blob],"fechamento-portaria-dlotus.png",{type:"image/png"});
-      if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
-        try{await navigator.share({files:[file]});}
-        catch(e){if(e.name!=="AbortError")throw e;}
-      }else{
-        const url=URL.createObjectURL(blob);
-        const a=document.createElement("a");a.href=url;a.download=file.name;
-        document.body.appendChild(a);a.click();a.remove();
-        setTimeout(()=>URL.revokeObjectURL(url),60000);
-        toast.info("Imagem PNG salva. Envie pelo WhatsApp.");
-      }
-    }catch(e){toast.error(e.message||"Erro ao compartilhar imagem");}
-    finally{setSharing(false);}
+      const result = await shareClosePng(report,"portaria","CAIXA PORTARIA");
+      if (result === "downloaded") toast.info("PNG salvo. Envie pelo WhatsApp.");
+    } catch (e) { toast.error(e.message || "Erro ao compartilhar imagem"); }
+    finally { setSharing(false); }
   };
   const Line = ({ label, value, strong = false }) => <div className={`line flex justify-between gap-4 py-1 ${strong ? "strong font-bold" : ""}`}><span>{label}</span><span className="text-right">{value}</span></div>;
   return <div className="max-w-xl mx-auto space-y-4">
     <div className="rounded-xl bg-emerald-950/30 border border-emerald-500/40 p-4 text-emerald-300 font-semibold">✓ Caixa da Portaria fechado. Relatório disponível para impressão.</div>
-    <div id="portaria-cupom-80mm" className="mx-auto bg-[#121215] text-white rounded-2xl p-5 shadow-lg border-2 border-white" style={{maxWidth:"440px",fontFamily:"Arial, sans-serif",fontSize:13,color:"#ffffff"}}>
+    <CloseNeonPreview report={report} kind="portaria" name="CAIXA PORTARIA" />
+    <div id="portaria-cupom-80mm" className="mx-auto bg-[#121215] text-white rounded-2xl p-5 shadow-lg border-2 border-white" style={{position:"absolute",left:"-10000px",top:0,width:"440px",fontFamily:"Arial, sans-serif",fontSize:13,color:"#ffffff"}}>
       <h2 className="text-center text-base font-black text-sky-400">D'LOTUS LOUNGE BAR</h2>
       <h3 className="text-center text-2xl font-black my-2">✓ Caixa Fechado</h3>
       <p className="text-center text-zinc-400 mb-4">Caixa Portaria</p>
