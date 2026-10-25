@@ -2186,8 +2186,62 @@ async def on_shutdown():
 
 # ==================== PORTARIA MODULE ====================
 class PortariaConfigIn(BaseModel):
-    price_homem: float
-    price_mulher: float
+    price_homem: float = Field(ge=0)
+    price_mulher: float = Field(ge=0)
+
+class PortariaScheduleIn(BaseModel):
+    weekly: Dict[str, List[Dict[str, Any]]] = Field(default_factory=dict)
+    exceptions: Dict[str, List[Dict[str, Any]]] = Field(default_factory=dict)
+    templates: Dict[str, List[Dict[str, Any]]] = Field(default_factory=dict)
+
+
+def _validate_ranges(rows):
+    if len(rows) > 20:
+        raise HTTPException(400, 'Máximo de 20 faixas por noite')
+    normalized = []
+    for row in rows:
+        start = str(row.get('start', ''))
+        if not re.fullmatch(r'(?:[01]\d|2[0-3]):[0-5]\d', start):
+            raise HTTPException(400, 'Horário inválido: use HH:MM')
+        h, m = map(int, start.split(':'))
+        # A noite começa às 18h e termina às 17h59 do dia seguinte.
+        minutes = h * 60 + m
+        order = minutes if minutes >= 1080 else minutes + 1440
+        ph, pm = float(row.get('homem', 0)), float(row.get('mulher', 0))
+        if not math.isfinite(ph) or not math.isfinite(pm) or min(ph, pm) < 0 or max(ph, pm) > 100000:
+            raise HTTPException(400, 'Preços inválidos')
+        normalized.append((order, {'start': start, 'homem': round(ph, 2), 'mulher': round(pm, 2)}))
+    normalized.sort(key=lambda x: x[0])
+    if len(set(x[0] for x in normalized)) != len(normalized):
+        raise HTTPException(400, 'Horários duplicados')
+    return [x[1] for x in normalized]
+
+
+def _night_context():
+    from zoneinfo import ZoneInfo
+    local = datetime.now(ZoneInfo('America/Sao_Paulo'))
+    night = (local - timedelta(days=1)).date() if local.hour < 18 else local.date()
+    minutes = local.hour * 60 + local.minute
+    return night, minutes if minutes >= 1080 else minutes + 1440
+
+
+def _active_portaria_prices(cfg):
+    night, minute = _night_context()
+    key = night.isoformat()
+    rows = cfg.get('exceptions', {}).get(key)
+    if rows is None:
+        rows = cfg.get('weekly', {}).get(str(night.weekday()), [])
+    rows = _validate_ranges(rows or [])
+    chosen = None
+    for row in rows:
+        h, m = map(int, row['start'].split(':'))
+        order = h * 60 + m
+        if order < 1080: order += 1440
+        if minute >= order: chosen = row
+    return {'price_homem': chosen['homem'] if chosen else cfg['price_homem'],
+            'price_mulher': chosen['mulher'] if chosen else cfg['price_mulher'],
+            'night_date': key, 'active_range': chosen, 'server_time': now_iso()}
+
 
 
 class PortariaClientIn(BaseModel):
@@ -2233,7 +2287,26 @@ async def _get_open_cash():
 
 @api.get("/portaria/config")
 async def get_portaria_config(user: dict = Depends(get_current_user)):
-    return await _get_portaria_config()
+    cfg = await _get_portaria_config()
+    # Funcionários recebem apenas preços efetivos; programação é administrativa.
+    if 'portaria_config' not in user.get('permissions', []) and user.get('role') != 'admin':
+        return {**_active_portaria_prices(cfg)}
+    return {**cfg, **_active_portaria_prices(cfg)}
+
+
+@api.put("/portaria/schedule")
+async def set_portaria_schedule(data: PortariaScheduleIn, user: dict = Depends(require_perm("portaria_config"))):
+    weekly = {str(k): _validate_ranges(v) for k, v in data.weekly.items() if str(k) in [str(i) for i in range(7)]}
+    exceptions = {}
+    for key, rows in data.exceptions.items():
+        try: datetime.strptime(key, '%Y-%m-%d')
+        except ValueError: raise HTTPException(400, 'Data especial inválida')
+        exceptions[key] = _validate_ranges(rows)
+    templates = {str(k)[:80]: _validate_ranges(v) for k, v in data.templates.items() if str(k).strip()}
+    await db.portaria_config.update_one({'id': 'singleton'}, {'$set': {'weekly': weekly, 'exceptions': exceptions, 'templates': templates, 'updated_at': now_iso(), 'updated_by': user['id']}}, upsert=True)
+    await audit('update_portaria_schedule', user, 'portaria_config', 'singleton', {'weekly': weekly, 'exceptions': exceptions, 'templates': templates})
+    cfg = await _get_portaria_config()
+    return {**cfg, **_active_portaria_prices(cfg)}
 
 
 @api.put("/portaria/config")
@@ -2300,7 +2373,8 @@ async def create_entry(data: PortariaEntryIn, user: dict = Depends(require_perm(
     if data.payment_method not in ("dinheiro", "pix", "credito", "debito"):
         raise HTTPException(status_code=400, detail="Forma de pagamento inválida")
     cfg = await _get_portaria_config()
-    amount = data.amount if data.amount is not None else (cfg["price_homem"] if data.gender == "homem" else cfg["price_mulher"])
+    effective_cfg = _active_portaria_prices(cfg)
+    amount = data.amount if data.amount is not None else (effective_cfg["price_homem"] if data.gender == "homem" else effective_cfg["price_mulher"])
     client_name = data.client_name or ""
     if data.client_id:
         c = await db.portaria_clients.find_one({"id": data.client_id})
@@ -2347,7 +2421,7 @@ async def create_entry_group(data: PortariaGroupIn, user: dict = Depends(require
     cash = await _get_open_cash()
     if not cash:
         raise HTTPException(status_code=400, detail="Abra o caixa da portaria antes de registrar entradas")
-    cfg = await _get_portaria_config()
+    cfg = _active_portaria_prices(await _get_portaria_config())
     existing = await db.portaria_groups.find_one({"id": data.id}, {"_id": 0})
     if existing:
         return existing

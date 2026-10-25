@@ -76,9 +76,17 @@ function CobrarEntrada() {
     api.get("/portaria/cash/current").then((r) => setCash(r.data)).catch(() => toast.error("Não foi possível verificar o caixa"));
   }, []);
 
+  useEffect(() => {
+    const refresh = () => api.get("/portaria/config").then(({data}) => setConfig(data)).catch(()=>{});
+    const timer = setInterval(refresh, 30000);
+    const onFocus = () => refresh();
+    window.addEventListener("focus",onFocus);
+    return () => {clearInterval(timer);window.removeEventListener("focus",onFocus);};
+  }, []);
+
   const count = homens + mulheres;
   const amount = config ? homens * config.price_homem + mulheres * config.price_mulher : 0;
-  const ready = count > 0 && method && config && cash?.status === "open";
+  const ready = count > 0 && (amount === 0 || method) && config && cash?.status === "open";
   const changeCount = (type, delta) => {
     if (confirming) return;
     setPendingId(null);
@@ -93,7 +101,7 @@ function CobrarEntrada() {
     setPendingId(id);
     try {
       const { data } = await api.post("/portaria/entries/group", {
-        id, homens, mulheres, payment_method: method, client_name: clientName
+        id, homens, mulheres, payment_method: amount === 0 ? "dinheiro" : method, client_name: clientName
       });
       toast.success(`✅ ${data.total_pessoas} entradas registradas — ${formatBRL(data.amount)}`);
       setLastEntry(data);
@@ -152,7 +160,7 @@ function CobrarEntrada() {
           <div className="border-t border-white/10 pt-3 flex justify-between text-lg font-bold"><span>Total de pessoas</span><span data-testid="entry-total-people">{count}</span></div>
           <div className="text-sm text-zinc-500 text-center mt-4">Valor total a cobrar</div>
           <div className="mono text-5xl font-bold gold-text text-center" data-testid="entry-total-amount">{formatBRL(amount)}</div>
-          <div className="text-center text-sm text-[#D4AF37]">{method ? method.toUpperCase() : "Selecione o pagamento"}</div>
+          <div className="text-center text-sm text-[#D4AF37]">{amount === 0 ? "VIP GRATUITO" : (method ? method.toUpperCase() : "Selecione o pagamento")}</div>
         </div>
         <button onClick={submit} disabled={!ready || confirming} data-testid="confirm-entry" className="w-full py-5 bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#C5A059] text-black font-bold text-lg rounded-xl disabled:opacity-30 hover:opacity-90 transition">
           {confirming ? "Registrando grupo..." : `✓ CONFIRMAR ${count} ${count === 1 ? "ENTRADA" : "ENTRADAS"}`}
@@ -827,30 +835,76 @@ function DetailModal({ data, onClose }) {
 function ConfigPortaria() {
   const [config, setConfig] = useState(null);
   const [h, setH] = useState(""); const [m, setM] = useState("");
-  useEffect(() => { api.get("/portaria/config").then((r) => { setConfig(r.data); setH(r.data.price_homem); setM(r.data.price_mulher); }); }, []);
+  const [weekly, setWeekly] = useState({});
+  const [exceptions, setExceptions] = useState({});
+  const [templates, setTemplates] = useState({});
+  const [day, setDay] = useState("5");
+  const [night, setNight] = useState("");
+  const [templateName, setTemplateName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [mode, setMode] = useState("weekly");
+  const days = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
+  useEffect(() => { api.get("/portaria/config").then(({data}) => {
+    setConfig(data); setH(data.price_homem); setM(data.price_mulher);
+    setWeekly(data.weekly || {}); setExceptions(data.exceptions || {}); setTemplates(data.templates || {});
+    setNight(data.night_date || "");
+  }).catch(() => toast.error("Não foi possível carregar as configurações")); }, []);
+  const key = mode === "weekly" ? day : night;
+  const current = mode === "weekly" ? weekly : exceptions;
+  const rows = current[key] || [];
+  const updateRows = (newRows) => mode === "weekly" ? setWeekly(v => ({...v, [key]: newRows})) : setExceptions(v => ({...v, [key]: newRows}));
+  const updateRow = (idx, field, value) => updateRows(rows.map((r,i) => i === idx ? {...r,[field]:value} : r));
+  const add = () => updateRows([...rows,{start:"00:00",homem:0,mulher:0}]);
   const save = async () => {
-    try { const { data } = await api.put("/portaria/config", { price_homem: Number(h), price_mulher: Number(m) }); setConfig(data); toast.success("Valores atualizados"); } catch (e) { toast.error(e.response?.data?.detail || "Sem permissão"); }
+    setSaving(true);
+    try {
+      const price_homem=Number(h), price_mulher=Number(m);
+      if (![price_homem,price_mulher].every(v=>Number.isFinite(v)&&v>=0)) throw new Error("Informe preços válidos");
+      await api.put("/portaria/config", {price_homem,price_mulher});
+      const {data}=await api.put("/portaria/schedule", {weekly,exceptions,templates});
+      setConfig(data); setWeekly(data.weekly || {}); setExceptions(data.exceptions || {}); setTemplates(data.templates || {});
+      toast.success("Programação da portaria salva");
+    } catch(e) { toast.error(e.response?.data?.detail || e.message || "Não foi possível salvar"); }
+    finally {setSaving(false);}
   };
-  if (!config) return null;
-  return (
-    <div className="bg-[#121215] border border-white/5 rounded-2xl p-6 max-w-lg">
-      <h3 className="font-display text-xl font-bold mb-1">Valores de Entrada</h3>
-      <p className="text-sm text-zinc-500 mb-5">Somente administradores podem alterar.</p>
-      <div className="space-y-3">
-        <div>
-          <label className="text-xs uppercase tracking-widest text-zinc-400">👨 Homem</label>
-          <input type="number" step="0.01" value={h} onChange={(e) => setH(e.target.value)} data-testid="cfg-price-homem" className="w-full mt-2 px-3 py-3 bg-[#0A0A0C] border border-white/10 rounded-lg mono text-xl" />
-        </div>
-        <div>
-          <label className="text-xs uppercase tracking-widest text-zinc-400">👩 Mulher</label>
-          <input type="number" step="0.01" value={m} onChange={(e) => setM(e.target.value)} data-testid="cfg-price-mulher" className="w-full mt-2 px-3 py-3 bg-[#0A0A0C] border border-white/10 rounded-lg mono text-xl" />
-        </div>
-        <button onClick={save} data-testid="save-cfg" className="w-full py-3 bg-[#D4AF37] text-black font-bold rounded-lg">Salvar</button>
+  if (!config) return <p className="text-zinc-400">Carregando configurações...</p>;
+  const inputCls="w-full mt-1 px-3 py-2 bg-[#0A0A0C] border border-white/20 rounded-lg text-white";
+  return <div className="space-y-6 max-w-3xl">
+    <div className="bg-[#121215] border border-white/10 rounded-2xl p-5">
+      <h3 className="font-display text-xl font-bold mb-2">Valores padrão de entrada</h3>
+      <p className="text-zinc-400 text-sm mb-4">Usados quando não houver uma faixa de horário ativa. VIP = R$ 0.</p>
+      <div className="grid grid-cols-2 gap-3">
+        <label className="text-sm">Homem<input type="number" min="0" step="0.01" value={h} onChange={e=>setH(e.target.value)} className={inputCls}/></label>
+        <label className="text-sm">Mulher<input type="number" min="0" step="0.01" value={m} onChange={e=>setM(e.target.value)} className={inputCls}/></label>
       </div>
     </div>
-  );
+    <div className="bg-[#121215] border border-white/10 rounded-2xl p-5 space-y-4">
+      <h3 className="font-display text-xl font-bold">Horários e VIP automático</h3>
+      <p className="text-sm text-zinc-400">Cada faixa começa no horário indicado e vale até a próxima. Para eventos noturnos, a programação vai das 18h até as 17h59 do dia seguinte. Preços zero são VIP.</p>
+      <div className="flex gap-2 flex-wrap">
+        <button onClick={()=>setMode("weekly")} className={`px-4 py-2 rounded-lg ${mode==="weekly"?"bg-blue-600":"bg-zinc-800"}`}>Programação semanal</button>
+        <button onClick={()=>setMode("night")} className={`px-4 py-2 rounded-lg ${mode==="night"?"bg-blue-600":"bg-zinc-800"}`}>Somente uma noite</button>
+      </div>
+      {mode === "weekly" ? <label className="block">Dia da semana<select className={inputCls} value={day} onChange={e=>setDay(e.target.value)}>{days.map((d,i)=><option key={i} value={i}>{d}</option>)}</select></label>
+      : <label className="block">Data da noite<input className={inputCls} type="date" value={night} onChange={e=>setNight(e.target.value)}/></label>}
+      {rows.map((r,i)=><div key={`${key}-${i}`} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 items-end">
+        <label className="text-xs text-zinc-400">A partir de<input type="time" className={inputCls} value={r.start} onChange={e=>updateRow(i,"start",e.target.value)}/></label>
+        <label className="text-xs text-zinc-400">Homem R$<input type="number" min="0" step="0.01" className={inputCls} value={r.homem} onChange={e=>updateRow(i,"homem",e.target.value)}/></label>
+        <label className="text-xs text-zinc-400">Mulher R$<input type="number" min="0" step="0.01" className={inputCls} value={r.mulher} onChange={e=>updateRow(i,"mulher",e.target.value)}/></label>
+        <button className="p-2 bg-red-900/50 rounded-lg" title="Excluir faixa" onClick={()=>updateRows(rows.filter((_,j)=>j!==i))}>✕</button>
+      </div>)}
+      <button onClick={add} className="px-4 py-2 border border-blue-500 text-blue-300 rounded-lg">+ Adicionar horário</button>
+      <p className="text-xs text-zinc-400">Para retirar uma exceção e voltar ao padrão semanal, use o botão abaixo.</p>
+      {mode === "night" && <button className="text-amber-300 text-sm underline" onClick={()=>setExceptions(v=>{const copy={...v};delete copy[night];return copy;})}>Voltar ao padrão semanal nesta noite</button>}
+    </div>
+    <div className="bg-[#121215] border border-white/10 rounded-2xl p-5 space-y-3">
+      <h3 className="font-display text-lg font-bold">Modelos salvos</h3>
+      <div className="flex gap-2"><input className={inputCls} placeholder="Nome do modelo (ex.: Sexta Mostradinha)" value={templateName} onChange={e=>setTemplateName(e.target.value)}/><button className="bg-zinc-700 rounded-lg px-3" onClick={()=>{if(!templateName.trim())return;setTemplates(v=>({...v,[templateName.trim()]:rows.map(r=>({...r}))}));toast.info("Modelo adicionado. Clique em Salvar tudo.");}}>Guardar</button></div>
+      <div className="flex flex-wrap gap-2">{Object.keys(templates).map(name=><button key={name} onClick={()=>updateRows(templates[name].map(r=>({...r})))} className="px-3 py-2 rounded-lg border border-white/20 text-sm">Aplicar: {name}</button>)}</div>
+    </div>
+    <button disabled={saving} onClick={save} className="w-full py-4 bg-blue-600 text-white font-bold rounded-xl disabled:opacity-50">{saving?"Salvando...":"SALVAR TUDO"}</button>
+  </div>;
 }
-
 
 // Integração Unico: a tela não faz consultas reais sem contrato e backend homologado.
 // Nunca enviar credenciais da Unico pelo navegador, nem aprovar acesso com simulações.
