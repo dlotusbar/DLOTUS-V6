@@ -3552,6 +3552,8 @@ class AgendaAttractionIn(BaseModel):
     observacoes: str = ""
     status: str = "A confirmar"
     recorrencia: str = "nenhuma"  # nenhuma | semanal
+    serie_id: Optional[str] = None
+    ocorrencia_original: Optional[str] = None
 
 
 def agenda_validate(data: AgendaAttractionIn):
@@ -3568,14 +3570,55 @@ def agenda_validate(data: AgendaAttractionIn):
     if data.recorrencia not in ("nenhuma", "semanal"): raise HTTPException(422, "Recorrencia invalida")
     return ini, fim
 
+def agenda_instances(doc, begin, end):
+    """Expande séries semanais em memória, sem criar milhares de registros no banco."""
+    ini = datetime.fromisoformat(doc["inicio"])
+    fim = datetime.fromisoformat(doc["fim"])
+    if doc.get("recorrencia") != "semanal":
+        if ini < end and fim > begin:
+            return [doc]
+        return []
+    skip = set(doc.get("excecoes") or [])
+    delta = timedelta(days=7)
+    n = max(0, int((begin - fim).total_seconds() // delta.total_seconds()))
+    out = []
+    while ini + n*delta < end:
+        a, b = ini+n*delta, fim+n*delta
+        key = a.date().isoformat()
+        if b > begin and key not in skip:
+            out.append({**doc, "id": doc["id"] + "::" + key,
+                        "serie_id": doc["id"], "ocorrencia_original": key,
+                        "inicio": a.isoformat(), "fim": b.isoformat()})
+        n += 1
+    return out
+
 async def agenda_conflicts(ini, fim, exclude=None):
-    query = {"status": {"$ne": "Cancelado"}, "inicio": {"$lt": fim.isoformat()}, "fim": {"$gt": ini.isoformat()}}
-    if exclude: query["id"] = {"$ne": exclude}
-    return await db.agenda_atracoes.find(query, {"_id": 0, "id": 1, "artista": 1, "inicio": 1, "fim": 1}).to_list(100)
+    # Inclui ocorrências semanais virtuais, além das atrações avulsas.
+    docs = await db.agenda_atracoes.find({"status": {"$ne": "Cancelado"}}, {"_id": 0}).to_list(10000)
+    clashes = []
+    for doc in docs:
+        if doc["id"] == exclude or doc.get("serie_id") == exclude:
+            continue
+        for occ in agenda_instances(doc, ini, fim):
+            if occ["id"] != exclude and datetime.fromisoformat(occ["inicio"]) < fim and datetime.fromisoformat(occ["fim"]) > ini:
+                clashes.append({"id":occ["id"],"artista":occ["artista"],"inicio":occ["inicio"],"fim":occ["fim"]})
+    return clashes
 
 @api.get("/agenda/atracoes")
-async def agenda_list(user: dict = Depends(get_current_user)):
-    return await db.agenda_atracoes.find({}, {"_id": 0}).sort("inicio", 1).to_list(5000)
+async def agenda_list(inicio: Optional[str] = None, fim: Optional[str] = None, user: dict = Depends(get_current_user)):
+    docs = await db.agenda_atracoes.find({}, {"_id": 0}).sort("inicio", 1).to_list(10000)
+    if not inicio or not fim:
+        return docs
+    try:
+        begin, end = datetime.fromisoformat(inicio), datetime.fromisoformat(fim)
+    except ValueError:
+        raise HTTPException(422, "Intervalo inválido")
+    if end <= begin or (end-begin).days > 400:
+        raise HTTPException(422, "Selecione até 400 dias")
+    result = []
+    for doc in docs:
+        result.extend(agenda_instances(doc, begin, end))
+    return sorted(result, key=lambda x:x["inicio"])
 
 @api.post("/agenda/atracoes")
 async def agenda_create(data: AgendaAttractionIn, user: dict = Depends(get_current_user)):
@@ -3583,8 +3626,22 @@ async def agenda_create(data: AgendaAttractionIn, user: dict = Depends(get_curre
         raise HTTPException(403, "Apenas administradores e gerentes")
     ini, fim = agenda_validate(data)
     conflicts = await agenda_conflicts(ini, fim)
+    if data.recorrencia == "semanal" and not conflicts:
+        existing = await db.agenda_atracoes.find({"status": {"$ne": "Cancelado"}}, {"_id": 0}).to_list(10000)
+        for n in range(1, 53):
+            a, b = ini + timedelta(days=7*n), fim + timedelta(days=7*n)
+            conflicts = [{"id": occ["id"], "artista": occ["artista"], "inicio": occ["inicio"], "fim": occ["fim"]}
+                         for doc in existing for occ in agenda_instances(doc, a, b)
+                         if datetime.fromisoformat(occ["inicio"]) < b and datetime.fromisoformat(occ["fim"]) > a]
+            if conflicts: break
     if conflicts: raise HTTPException(409, {"mensagem": "Conflito de horario", "atracoes": conflicts})
     doc = data.model_dump() if hasattr(data, "model_dump") else data.dict()
+    # Editar uma ocorrência gera uma exceção da série, sem alterar as demais.
+    if data.serie_id and data.ocorrencia_original:
+        parent = await db.agenda_atracoes.find_one({"id":data.serie_id,"recorrencia":"semanal"})
+        if not parent: raise HTTPException(404,"Série semanal não encontrada")
+        await db.agenda_atracoes.update_one({"id":data.serie_id},{"$addToSet":{"excecoes":data.ocorrencia_original}})
+        doc["recorrencia"] = "nenhuma"
     doc.update(id=new_id(), criado_em=now_iso())
     await db.agenda_atracoes.insert_one(doc)
     doc.pop("_id", None)
@@ -3594,9 +3651,25 @@ async def agenda_create(data: AgendaAttractionIn, user: dict = Depends(get_curre
 async def agenda_update(aid: str, data: AgendaAttractionIn, user: dict = Depends(get_current_user)):
     if str(user.get("role") or "").strip().lower() not in ("admin", "administrador", "gerente"):
         raise HTTPException(403, "Apenas administradores e gerentes")
+    if "::" in aid:
+        serie, day = aid.split("::",1)
+        parent = await db.agenda_atracoes.find_one({"id":serie,"recorrencia":"semanal"})
+        if not parent: raise HTTPException(404,"Série não encontrada")
+        ini, fim = agenda_validate(data)
+        conflicts = await agenda_conflicts(ini, fim, serie)
+        if conflicts and data.status != "Cancelado": raise HTTPException(409, {"mensagem":"Conflito de horario","atracoes":conflicts})
+        await db.agenda_atracoes.update_one({"id":serie},{"$addToSet":{"excecoes":day}})
+        doc = data.model_dump() if hasattr(data,"model_dump") else data.dict()
+        doc.update(id=new_id(),recorrencia="nenhuma",serie_id=serie,ocorrencia_original=day,criado_em=now_iso())
+        await db.agenda_atracoes.insert_one(doc)
+        return {"ok":True}
     if not await db.agenda_atracoes.find_one({"id": aid}): raise HTTPException(404, "Atracao nao encontrada")
     ini, fim = agenda_validate(data)
     conflicts = await agenda_conflicts(ini, fim, aid)
+    if data.recorrencia == "semanal" and not conflicts and data.status != "Cancelado":
+        for n in range(1, 53):
+            conflicts = await agenda_conflicts(ini + timedelta(days=7*n), fim + timedelta(days=7*n), aid)
+            if conflicts: break
     if conflicts and data.status != "Cancelado": raise HTTPException(409, {"mensagem": "Conflito de horario", "atracoes": conflicts})
     doc = data.model_dump() if hasattr(data, "model_dump") else data.dict()
     await db.agenda_atracoes.update_one({"id": aid}, {"$set": doc})
@@ -3606,10 +3679,26 @@ async def agenda_update(aid: str, data: AgendaAttractionIn, user: dict = Depends
 async def agenda_delete(aid: str, user: dict = Depends(get_current_user)):
     if str(user.get("role") or "").strip().lower() not in ("admin", "administrador", "gerente"):
         raise HTTPException(403, "Apenas administradores e gerentes")
+    if "::" in aid:
+        serie, day = aid.split("::",1)
+        result = await db.agenda_atracoes.update_one({"id":serie,"recorrencia":"semanal"},{"$addToSet":{"excecoes":day}})
+        if not result.matched_count: raise HTTPException(404,"Ocorrência não encontrada")
+        return {"ok":True}
+    doc = await db.agenda_atracoes.find_one({"id":aid})
     result = await db.agenda_atracoes.delete_one({"id": aid})
+    if doc and doc.get("recorrencia") == "semanal":
+        await db.agenda_atracoes.delete_many({"serie_id":aid})
     if not result.deleted_count: raise HTTPException(404, "Atracao nao encontrada")
     return {"ok": True}
 
+
+
+@api.delete("/agenda/series/{serie_id}")
+async def agenda_delete_series(serie_id: str, user: dict = Depends(get_current_user)):
+    if str(user.get("role") or "").strip().lower() not in ("admin","administrador","gerente"):
+        raise HTTPException(403,"Apenas administradores e gerentes")
+    await db.agenda_atracoes.delete_many({"$or":[{"id":serie_id},{"serie_id":serie_id}]})
+    return {"ok":True}
 
 # -------- Vendas a Prazo: contas a receber (módulo isolado de teste) --------
 class PrazoContaIn(BaseModel):
