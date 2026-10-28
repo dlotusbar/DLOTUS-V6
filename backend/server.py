@@ -3570,6 +3570,14 @@ def agenda_validate(data: AgendaAttractionIn):
     if data.recorrencia not in ("nenhuma", "semanal"): raise HTTPException(422, "Recorrencia invalida")
     return ini, fim
 
+def agenda_check_past(ini):
+    # Datas antigas permanecem consultáveis, mas não podem receber alterações.
+    from zoneinfo import ZoneInfo
+    hoje = datetime.now(ZoneInfo("America/Sao_Paulo")).date()
+    if ini.date() < hoje:
+        raise HTTPException(422, "Data passada: a agenda permite somente consulta ao histórico")
+
+
 def agenda_instances(doc, begin, end):
     """Expande séries semanais em memória, sem criar milhares de registros no banco."""
     ini = datetime.fromisoformat(doc["inicio"])
@@ -3625,6 +3633,7 @@ async def agenda_create(data: AgendaAttractionIn, user: dict = Depends(get_curre
     if str(user.get("role") or "").strip().lower() not in ("admin", "administrador", "gerente"):
         raise HTTPException(403, "Apenas administradores e gerentes")
     ini, fim = agenda_validate(data)
+    agenda_check_past(ini)
     conflicts = await agenda_conflicts(ini, fim)
     if data.recorrencia == "semanal" and not conflicts:
         existing = await db.agenda_atracoes.find({"status": {"$ne": "Cancelado"}}, {"_id": 0}).to_list(10000)
@@ -3656,6 +3665,8 @@ async def agenda_update(aid: str, data: AgendaAttractionIn, user: dict = Depends
         parent = await db.agenda_atracoes.find_one({"id":serie,"recorrencia":"semanal"})
         if not parent: raise HTTPException(404,"Série não encontrada")
         ini, fim = agenda_validate(data)
+        agenda_check_past(datetime.fromisoformat(parent["inicio"]) if not day else datetime.fromisoformat(day + "T00:00:00"))
+        agenda_check_past(ini)
         conflicts = await agenda_conflicts(ini, fim, serie)
         if conflicts and data.status != "Cancelado": raise HTTPException(409, {"mensagem":"Conflito de horario","atracoes":conflicts})
         await db.agenda_atracoes.update_one({"id":serie},{"$addToSet":{"excecoes":day}})
@@ -3663,8 +3674,11 @@ async def agenda_update(aid: str, data: AgendaAttractionIn, user: dict = Depends
         doc.update(id=new_id(),recorrencia="nenhuma",serie_id=serie,ocorrencia_original=day,criado_em=now_iso())
         await db.agenda_atracoes.insert_one(doc)
         return {"ok":True}
-    if not await db.agenda_atracoes.find_one({"id": aid}): raise HTTPException(404, "Atracao nao encontrada")
+    existing_doc = await db.agenda_atracoes.find_one({"id": aid})
+    if not existing_doc: raise HTTPException(404, "Atracao nao encontrada")
+    agenda_check_past(datetime.fromisoformat(existing_doc["inicio"]))
     ini, fim = agenda_validate(data)
+    agenda_check_past(ini)
     conflicts = await agenda_conflicts(ini, fim, aid)
     if data.recorrencia == "semanal" and not conflicts and data.status != "Cancelado":
         for n in range(1, 53):
@@ -3681,10 +3695,12 @@ async def agenda_delete(aid: str, user: dict = Depends(get_current_user)):
         raise HTTPException(403, "Apenas administradores e gerentes")
     if "::" in aid:
         serie, day = aid.split("::",1)
+        agenda_check_past(datetime.fromisoformat(day + "T00:00:00"))
         result = await db.agenda_atracoes.update_one({"id":serie,"recorrencia":"semanal"},{"$addToSet":{"excecoes":day}})
         if not result.matched_count: raise HTTPException(404,"Ocorrência não encontrada")
         return {"ok":True}
     doc = await db.agenda_atracoes.find_one({"id":aid})
+    if doc: agenda_check_past(datetime.fromisoformat(doc["inicio"]))
     result = await db.agenda_atracoes.delete_one({"id": aid})
     if doc and doc.get("recorrencia") == "semanal":
         await db.agenda_atracoes.delete_many({"serie_id":aid})
