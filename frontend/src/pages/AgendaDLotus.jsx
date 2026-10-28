@@ -1,3 +1,4 @@
+import './AgendaBannerEfeitos.css';
 import './AgendaDLotus.css';
 import agendaBanner from './agenda-dlotus-banner.jpg';
 import './ReservasDJ.css';
@@ -70,7 +71,13 @@ export default function AgendaDLotus(){
  const filtered=items.filter(x=>x.artista.toLowerCase().includes(search.toLowerCase()));
  const days=useMemo(()=>{const [y,m]=month.split('-').map(Number);const first=new Date(y,m-1,1);return Array.from({length:new Date(y,m,0).getDate()+first.getDay()},(_,i)=>i-first.getDay()+1)},[month]);
  const card='rounded-2xl bg-[#101a29] border border-[#25354a] p-5';
- return <div className="agenda-night min-h-screen bg-[#090f1b] text-white p-4 md:p-8 space-y-6"><header className="w-full space-y-3" aria-label="Cabeçalho Agenda D’Lotus"><img src={agendaBanner} alt="Agenda D’Lotus Lounge Bar — programação de quarta a domingo" className="block w-full h-auto max-w-full rounded-xl" style={{objectFit:'contain',aspectRatio:'16 / 9'}}/><div className="flex justify-end"><button onClick={()=>openNew()} className="agenda-new-attraction bg-sky-600 hover:bg-sky-500 rounded-xl px-5 py-3 font-bold flex gap-2 items-center"><Plus size={18}/> Nova atração</button></div></header>
+ return <div className="agenda-night min-h-screen bg-[#090f1b] text-white p-4 md:p-8 space-y-6"><header className="w-full space-y-3" aria-label="Cabeçalho Agenda D’Lotus"><div className="dl-banner-efeitos">
+  <img src={agendaBanner} alt="Agenda D’Lotus Lounge Bar — programação de quarta a domingo" className="block w-full h-auto max-w-full rounded-xl" style={{objectFit:'contain',aspectRatio:'16 / 9'}}/>
+  <div className="dl-banner-pulsacao" aria-hidden="true"/>
+  <div className="dl-banner-luz dl-banner-luz-azul" aria-hidden="true"/>
+  <div className="dl-banner-luz dl-banner-luz-rosa" aria-hidden="true"/>
+  <div className="dl-banner-brilho" aria-hidden="true"/>
+</div><div className="flex justify-end"><button onClick={()=>openNew()} className="agenda-new-attraction bg-sky-600 hover:bg-sky-500 rounded-xl px-5 py-3 font-bold flex gap-2 items-center"><Plus size={18}/> Nova atração</button></div></header>
  {error&&<div role="alert" className="bg-red-950 border border-red-700 text-red-200 rounded-xl p-3">{error}</div>}
  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">{[['Próxima atração',next[0]?.artista||'Nenhuma',next[0]?fmt(next[0].inicio):''],['Esta semana',week.length,'atrações'],['Este mês',thisMonth.length,'atrações'],['Cachês pendentes',money(pending),'saldo a pagar']].map(([title,val,sub])=><div key={title} className={card}><div className="text-xs text-slate-400">{title}</div><div className="font-extrabold text-xl md:text-2xl text-cyan-300 mt-2 break-words">{val}</div><div className="text-xs text-slate-400 mt-1">{sub}</div></div>)}</div>
  {reminders.length>0&&<div className="rounded-xl border border-amber-700/60 bg-amber-950/30 p-4 flex gap-3"><Bell className="text-amber-400 shrink-0"/><div><b>Lembretes de atrações</b><p className="text-sm text-amber-100">{reminders.map(x=>x.artista+' — '+fmt(x.inicio)).join(' • ')}</p><p className="text-xs text-amber-300 mt-1">Avisos visíveis ao abrir a Agenda (notificações externas ainda não configuradas).</p></div></div>}
