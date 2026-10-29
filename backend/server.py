@@ -3029,7 +3029,7 @@ class ReservaIn(BaseModel):
 class ClienteReservaRegistro(BaseModel):
     nome: str = Field(min_length=3,max_length=120)
     whatsapp: str = Field(min_length=10,max_length=20)
-    senha: str = Field(min_length=8,max_length=128)
+    senha: str = Field(min_length=6,max_length=128)
 
 class ClienteReservaLogin(BaseModel):
     whatsapp: str
@@ -3043,6 +3043,7 @@ async def cliente_reserva_cadastro(data: ClienteReservaRegistro):
     telefone=normalizar_whatsapp(data.whatsapp)
     if not 10 <= len(telefone) <= 13: raise HTTPException(422,"WhatsApp inválido")
     if await db.reserva_clientes.find_one({"_id":telefone}): raise HTTPException(409,"WhatsApp já cadastrado")
+    if not re.fullmatch(r"[0-9]{6}", data.senha): raise HTTPException(422,"A senha deve ter exatamente 6 números")
     try:
         await db.reserva_clientes.insert_one({"_id":telefone,"nome":data.nome.strip(),"senha_hash":hash_pw(data.senha),"criado_em":now_iso()})
     except DuplicateKeyError: raise HTTPException(409,"WhatsApp já cadastrado")
@@ -3100,6 +3101,8 @@ class ReservaMapaMesa(BaseModel):
     ativa: bool = True
     largura: float = Field(default=9, ge=3, le=35)
     altura: float = Field(default=9, ge=3, le=35)
+    formato: str = Field(default="quadrada", pattern="^(quadrada|redonda)$")
+    cor: str = Field(default="#065f46", pattern="^#[0-9a-fA-F]{6}$")
 
 class ReservaMapaAmbiente(BaseModel):
     id: str = Field(min_length=1, max_length=40)
@@ -3389,6 +3392,7 @@ async def testar_config_mp(user: dict = Depends(_mp_admin)):
 # Sem token, os endpoints de pagamento recusam a operacao.
 class ReservaPublicaIn(ReservaIn):
     email: str = Field(min_length=5, max_length=200)
+    observacoes: str = Field(default="", max_length=500)
 
 async def mp_get(payment_id: str) -> dict:
     token = await _mp_secret("token")
