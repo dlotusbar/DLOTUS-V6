@@ -1,13 +1,15 @@
+import LeitorQRReserva from "../components/LeitorQRReserva";
 import { useEffect, useState } from "react";
 import { CloseNeonPreview, shareClosePng } from "../lib/closeNeon";
 import api, { formatBRL, formatDate } from "../lib/api";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
-import { UserPlus, DoorOpen, Users, Settings, History, Wallet, Moon, Lock, Unlock, X, CheckCircle2, Search, AlertTriangle, Printer } from "lucide-react";
+import { UserPlus, DoorOpen, Users, Settings, History, Wallet, Moon, Lock, Unlock, X, CheckCircle2, Search, AlertTriangle, Printer, QrCode } from "lucide-react";
 import { silentPrintCashClose, pickCaixaPrinter, isDesktop } from "../lib/desktopPrint";
 
 const TABS = [
   { id: "cobrar", label: "Cobrar Entrada", icon: DoorOpen, perm: "portaria" },
+  { id: "reservas_qr", label: "Reservas QR Code", icon: QrCode, perm: "portaria" },
   { id: "clientes", label: "Clientes", icon: Users, perm: "portaria" },
   { id: "maioridade", label: "Verificação de Maioridade", icon: CheckCircle2, perm: "portaria" },
   { id: "caixa", label: "Caixa", icon: Wallet, perm: "portaria_caixa" },
@@ -50,6 +52,7 @@ export default function Portaria() {
       </div>
 
       {tab === "cobrar" && <CobrarEntrada />}
+      {tab === "reservas_qr" && <ReservasQRPortaria />}
       {tab === "clientes" && <Clientes />}
       {tab === "maioridade" && <VerificacaoMaioridade />}
       {tab === "caixa" && <CaixaPortaria />}
@@ -57,6 +60,46 @@ export default function Portaria() {
       {tab === "historico" && <Historico />}
       {tab === "config" && <ConfigPortaria />}
     </div>
+  );
+}
+
+// ========== Reservas QR Code ==========
+function ReservasQRPortaria() {
+  const [codigo, setCodigo] = useState("");
+  const [processando, setProcessando] = useState(false);
+  const [resultado, setResultado] = useState(null);
+  const validar = async (valor) => {
+    const token = String(valor || "").trim();
+    if (!token || processando) return;
+    setProcessando(true);
+    setResultado(null);
+    try {
+      const { data } = await api.post("/reservas/checkin", { token });
+      setResultado(data);
+      setCodigo("");
+      toast.success("Check-in da reserva registrado com sucesso!");
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "QR Code inválido, já utilizado ou reserva não autorizada.");
+    } finally {
+      setProcessando(false);
+    }
+  };
+  return (
+    <section className="max-w-2xl mx-auto bg-[#121215] border border-[#D4AF37]/30 rounded-2xl p-5 space-y-4">
+      <h2 className="font-display text-xl font-bold text-[#D4AF37] flex items-center gap-2"><QrCode size={24}/> Reservas — Ler QR Code</h2>
+      <p className="text-sm text-zinc-400">Aponte a câmera para o QR Code da reserva ou digite o código. A confirmação registra a entrada no sistema de Reservas.</p>
+      <LeitorQRReserva onLido={validar} />
+      <form onSubmit={(e) => { e.preventDefault(); validar(codigo); }} className="space-y-3">
+        <label className="block text-sm text-zinc-300">Código da reserva</label>
+        <input value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder="Cole ou digite o código do QR" className="w-full bg-[#09090b] border border-white/20 rounded-lg p-3 text-white" />
+        <button disabled={processando || !codigo.trim()} className="w-full rounded-lg bg-[#D4AF37] p-3 text-black font-bold disabled:opacity-50">{processando ? "Validando..." : "Validar e registrar entrada"}</button>
+      </form>
+      {resultado && <div role="status" className="rounded-xl border border-emerald-500/40 bg-emerald-950/30 p-4 space-y-1">
+        <p className="font-bold text-emerald-300">Entrada autorizada!</p>
+        <p>Cliente: {resultado.cliente}</p>
+        <p>Mesa: {resultado.mesa} · Pessoas: {resultado.pessoas}</p>
+      </div>}
+    </section>
   );
 }
 
