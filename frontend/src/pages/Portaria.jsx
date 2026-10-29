@@ -1,5 +1,5 @@
 import LeitorQRReserva from "../components/LeitorQRReserva";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CloseNeonPreview, shareClosePng } from "../lib/closeNeon";
 import api, { formatBRL, formatDate } from "../lib/api";
 import { toast } from "sonner";
@@ -69,9 +69,11 @@ function ReservasQRPortaria() {
   const [codigo, setCodigo] = useState("");
   const [processando, setProcessando] = useState(false);
   const [resultado, setResultado] = useState(null);
+  const validandoRef = useRef(false);
   const validar = async (valor) => {
     const token = String(valor || "").trim();
-    if (!token || processando) return;
+    if (!token || validandoRef.current) return;
+    validandoRef.current = true;
     setProcessando(true);
     setResultado(null);
     try {
@@ -82,6 +84,7 @@ function ReservasQRPortaria() {
     } catch (e) {
       toast.error(e.response?.data?.detail || "QR Code inválido, já utilizado ou reserva não autorizada.");
     } finally {
+      validandoRef.current = false;
       setProcessando(false);
     }
   };
@@ -116,7 +119,7 @@ function ReservasQRPortaria() {
         <form onSubmit={(e) => {e.preventDefault();validar(codigo);}} className="mt-7 space-y-4 rounded-[26px] border border-white/10 bg-[#101018]/80 p-5 sm:p-7">
           <label htmlFor="codigo-reserva-portaria" className="block font-semibold text-zinc-200">Código da reserva</label>
           <input id="codigo-reserva-portaria" autoFocus autoComplete="off" value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder="Digite ou cole o código do QR Code" className="w-full rounded-xl border border-cyan-900/60 bg-black/60 p-4 text-white outline-none focus:border-cyan-400" />
-          <button type="submit" disabled={processando || !codigo.trim()} className="w-full rounded-xl bg-cyan-500 px-5 py-4 font-bold text-slate-950 transition hover:bg-cyan-400 disabled:opacity-50">{processando ? "Validando..." : "Validar e registrar entrada"}</button>
+          <p className="text-sm text-cyan-300" role="status">{processando ? "Validando reserva..." : "Pressione Enter para validar e registrar a entrada."}</p>
         </form>
       )}
       {resultado && <div role="status" className="mt-6 space-y-2 rounded-2xl border border-emerald-500/40 bg-emerald-950/30 p-5 text-emerald-100">
