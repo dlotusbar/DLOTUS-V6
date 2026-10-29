@@ -1,0 +1,10 @@
+/* Efeitos luminosos do banner, sem alterar a imagem original. */
+.dlotus-banner-reservas {position:relative; isolation:isolate; width:100%; overflow:hidden; border-radius:16px; background:#030c25; border:1px solid rgba(215,171,67,.8); box-shadow:0 0 16px rgba(18,106,255,.32),inset 0 0 12px rgba(226,171,49,.18);}
+.dlotus-banner-imagem {display:block; width:100%; height:auto; object-fit:contain;}
+.dlotus-banner-azul,.dlotus-banner-dourado {position:absolute; inset:-40% -80%; pointer-events:none; z-index:1; transform:translateX(-90%) rotate(14deg);}
+.dlotus-banner-azul {background:linear-gradient(90deg,transparent 42%,rgba(5,95,255,.04) 46%,rgba(20,155,255,.42) 49.5%,rgba(188,236,255,.6) 50%,rgba(20,155,255,.3) 50.5%,transparent 55%);mix-blend-mode:screen;animation:dlotus-varredura-azul 6s ease-in-out infinite;}
+.dlotus-banner-dourado {background:linear-gradient(90deg,transparent 46%,rgba(255,195,55,.08) 48%,rgba(255,212,115,.45) 50%,transparent 53%);mix-blend-mode:screen;animation:dlotus-varredura-dourada 8s ease-in-out 1.7s infinite;}
+@keyframes dlotus-varredura-azul {0%,15%{transform:translateX(-90%) rotate(14deg)}60%,100%{transform:translateX(90%) rotate(14deg)}}
+@keyframes dlotus-varredura-dourada {0%,20%{transform:translateX(-90%) rotate(14deg)}70%,100%{transform:translateX(90%) rotate(14deg)}}
+@media(max-width:640px){.dlotus-banner-reservas{border-radius:11px}}
+@media(prefers-reduced-motion:reduce){.dlotus-banner-azul,.dlotus-banner-dourado{animation:none;opacity:0}}
