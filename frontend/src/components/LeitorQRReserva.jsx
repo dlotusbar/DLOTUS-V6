@@ -14,6 +14,7 @@ export default function LeitorQRReserva({onLido}) {
   useEffect(()=>()=>{ativo.current=false; if(frame.current)cancelAnimationFrame(frame.current);stream.current?.getTracks().forEach(t=>t.stop());},[]);
   useEffect(()=>{if(aberto && video.current && stream.current){video.current.srcObject=stream.current;video.current.play().catch(()=>{});}},[aberto]);
   const iniciar = async () => {
+    ativo.current = true;
     setErro('');
     if(!window.isSecureContext){setErro('A câmera exige HTTPS ou localhost.');return;}
     if(!('BarcodeDetector' in window)){setErro('Este navegador não oferece leitura QR integrada. Use Chrome atualizado ou leitor externo.');return;}
@@ -30,5 +31,20 @@ export default function LeitorQRReserva({onLido}) {
       frame.current=requestAnimationFrame(buscar);
     }catch(e){parar();setErro('Não foi possível acessar a câmera. Confira a permissão do navegador.');}
   };
-  return <div className="space-y-2"><div className="flex gap-2"><button type="button" onClick={aberto?parar:iniciar} className="rounded-lg bg-cyan-700 px-4 py-3">{aberto?'Fechar câmera':'Ler QR Code pela câmera'}</button></div>{aberto&&<video ref={video} playsInline muted className="w-full max-w-md rounded-xl border border-cyan-600"/>}{erro&&<p role="alert" className="text-amber-300 text-sm">{erro}</p>}</div>;
+  useEffect(() => {
+    // Ao selecionar Câmera, iniciar automaticamente sem um segundo botão.
+    iniciar();
+    return () => {
+      ativo.current = false;
+      if (frame.current) cancelAnimationFrame(frame.current);
+      stream.current?.getTracks().forEach(t => t.stop());
+      stream.current = null;
+    };
+  }, []);
+
+  return <div className="w-full">
+    <video ref={video} playsInline muted autoPlay className={`w-full aspect-square object-cover rounded-xl ${aberto ? '' : 'hidden'}`} />
+    {!aberto && !erro && <p className="py-16 text-center text-cyan-300 text-sm">Abrindo câmera...</p>}
+    {erro && <p role="alert" className="py-10 text-center text-amber-300 text-sm">{erro}</p>}
+  </div>;
 }
