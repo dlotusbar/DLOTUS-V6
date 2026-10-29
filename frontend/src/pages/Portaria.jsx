@@ -70,6 +70,7 @@ function ReservasQRPortaria() {
   const [processando, setProcessando] = useState(false);
   const [resultado, setResultado] = useState(null);
   const validandoRef = useRef(false);
+  const leitorRef = useRef(null);
   const validar = async (valor) => {
     const token = String(valor || "").trim();
     if (!token || validandoRef.current) return;
@@ -95,11 +96,11 @@ function ReservasQRPortaria() {
       <p className="mt-5 max-w-2xl text-base leading-relaxed text-zinc-400 sm:text-xl">Escaneie o QR Code do cliente ou digite o código da reserva.</p>
 
       <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4" role="group" aria-label="Modo de leitura da reserva">
-        <button type="button" onClick={() => {setModo("camera");setResultado(null);}} aria-pressed={modo === "camera"} className={`flex min-h-16 items-center justify-center gap-2 rounded-2xl border px-2 py-4 text-sm font-semibold transition sm:text-xl ${modo === "camera" ? "border-cyan-500/60 bg-cyan-500/15 text-cyan-300 shadow-[0_0_0_1px_rgba(34,211,238,.12)]" : "border-white/10 bg-black/25 text-zinc-400 hover:border-cyan-700/50"}`}><Camera size={22}/> Câmera</button>
-        <button type="button" onClick={() => {setModo("codigo");setResultado(null);}} aria-pressed={modo === "codigo"} className={`flex min-h-16 items-center justify-center gap-2 rounded-2xl border px-2 py-4 text-sm font-semibold transition sm:text-xl ${modo === "codigo" ? "border-cyan-500/60 bg-cyan-500/15 text-cyan-300 shadow-[0_0_0_1px_rgba(34,211,238,.12)]" : "border-white/10 bg-black/25 text-zinc-400 hover:border-cyan-700/50"}`}><Keyboard size={22}/> Digitar código</button>
+        <button type="button" onClick={() => {setModo("camera");setResultado(null);leitorRef.current?.iniciar();}} aria-pressed={modo === "camera"} className={`flex min-h-16 items-center justify-center gap-2 rounded-2xl border px-2 py-4 text-sm font-semibold transition sm:text-xl ${modo === "camera" ? "border-cyan-500/60 bg-cyan-500/15 text-cyan-300 shadow-[0_0_0_1px_rgba(34,211,238,.12)]" : "border-white/10 bg-black/25 text-zinc-400 hover:border-cyan-700/50"}`}><Camera size={22}/> Câmera</button>
+        <button type="button" onClick={() => {leitorRef.current?.parar();setModo("codigo");setResultado(null);}} aria-pressed={modo === "codigo"} className={`flex min-h-16 items-center justify-center gap-2 rounded-2xl border px-2 py-4 text-sm font-semibold transition sm:text-xl ${modo === "codigo" ? "border-cyan-500/60 bg-cyan-500/15 text-cyan-300 shadow-[0_0_0_1px_rgba(34,211,238,.12)]" : "border-white/10 bg-black/25 text-zinc-400 hover:border-cyan-700/50"}`}><Keyboard size={22}/> Digitar código</button>
       </div>
 
-      {modo === "camera" ? (
+      <div className={modo === "camera" ? "block" : "hidden"}>
         <div className="mt-7 rounded-[26px] border border-white/10 bg-[#101018]/80 p-4 sm:p-6">
           <div className="relative overflow-hidden rounded-2xl border border-cyan-900/50 bg-black/80 p-3 sm:p-6">
             <div className="pointer-events-none absolute inset-[9%] z-10" aria-hidden="true">
@@ -109,13 +110,14 @@ function ReservasQRPortaria() {
               <span className="absolute bottom-0 right-0 h-14 w-14 border-b-[5px] border-r-[5px] border-white sm:h-20 sm:w-20" />
             </div>
             <div className="relative z-0 min-h-64 [&_video]:w-full [&_video]:rounded-lg [&_video]:object-cover">
-              <LeitorQRReserva onLido={validar} />
+              <LeitorQRReserva ref={leitorRef} onLido={validar} />
             </div>
           </div>
           <p className="mt-5 flex items-center justify-center gap-2 text-center text-sm text-zinc-400 sm:text-base"><QrCode size={18}/> Aponte a câmera para o QR Code do cliente</p>
           {processando && <p className="mt-2 text-center text-cyan-300" role="status">Validando reserva...</p>}
         </div>
-      ) : (
+      </div>
+      {modo === "codigo" && (
         <form onSubmit={(e) => {e.preventDefault();validar(codigo);}} className="mt-7 space-y-4 rounded-[26px] border border-white/10 bg-[#101018]/80 p-5 sm:p-7">
           <label htmlFor="codigo-reserva-portaria" className="block font-semibold text-zinc-200">Código da reserva</label>
           <input id="codigo-reserva-portaria" autoFocus autoComplete="off" value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder="Digite ou cole o código do QR Code" className="w-full rounded-xl border border-cyan-900/60 bg-black/60 p-4 text-white outline-none focus:border-cyan-400" />
