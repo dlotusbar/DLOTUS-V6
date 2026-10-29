@@ -12,6 +12,7 @@ export default function MapaReservasEditor({ eventoId, ocupadas, onSelect, onMap
   const [selecionada, setSelecionada] = useState(null);
   const [admin, setAdmin] = useState(false);
   const [imagemPendente, setImagemPendente] = useState(false);
+  const [salvando, setSalvando] = useState(false);
   const [proporcaoImagem, setProporcaoImagem] = useState(null);
   const area = useRef(null);
   const dragging = useRef(null);
@@ -55,18 +56,32 @@ export default function MapaReservasEditor({ eventoId, ocupadas, onSelect, onMap
   };
   const salvar = async () => {
     setErro(''); setSucesso('');
+    setSalvando(true);
     try { const {data} = await api.put('/reservas/mapa', mapa); setMapa(data); setEdicao(false); setImagemPendente(false); setSucesso('Mapa e posições salvos com sucesso.'); onMapaSalvo?.(data); }
     catch (e) { setErro(e.response?.data?.detail || 'Falha ao salvar mapa'); }
+    finally { setSalvando(false); }
   };
   const restaurar = async () => {
     try { const {data} = await api.get('/reservas/mapa'); setMapa(data); setEdicao(false); setErro(''); } catch(e) { setErro('Falha ao descartar alterações'); }
+  };
+  const adicionarMesa = () => {
+    const usados = new Set((mapa.mesas || []).map(m => Number(m.numero)));
+    let numero = 1; while (usados.has(numero)) numero++;
+    setMapa(prev => ({...prev, mesas:[...prev.mesas,{numero,tipo:'Mesa',capacidade:6,preco:50,ativa:true,x:50,y:50,largura:9,altura:9,formato:'quadrada',cor:'#065f46'}]}));
+    setSelecionada(numero);
+    setSucesso('Nova mesa adicionada. Posicione e clique em Salvar posições.');
+  };
+  const excluirSelecionada = () => {
+    if (selecionada == null || !window.confirm(`Excluir mesa ${selecionada}? Reservas ativas podem impedir a exclusão.`)) return;
+    setMapa(prev => ({...prev,mesas:prev.mesas.filter(m=>m.numero!==selecionada)}));
+    setSelecionada(null);
   };
   if (!mapa) return <p className="text-zinc-400">{erro || 'Carregando mapa...'}</p>;
   return <section className="space-y-3">
     <div className="flex flex-wrap items-center gap-2">
       <h2 className="text-xl font-semibold mr-auto">Mapa de reservas — {mapa.mesas.length} posições</h2>
       {admin && !edicao && <button type="button" className={button} onClick={() => {setEdicao(true); setSucesso('');}}>Editar mapa</button>}
-      {admin && edicao && <><button type="button" className={button} onClick={salvar}>Salvar posições</button><button type="button" className="rounded-lg px-3 py-2 bg-zinc-700" onClick={restaurar}>Descartar</button></>}
+      {admin && edicao && <><button type="button" disabled={salvando} className={button} onClick={salvar}>{salvando?"Salvando...":"Salvar posições"}</button><button type="button" className="rounded-lg px-3 py-2 bg-emerald-700" onClick={adicionarMesa}>+ Criar mesa/bistrô</button><button type="button" className="rounded-lg px-3 py-2 bg-zinc-700" onClick={restaurar}>Descartar</button></>}
     </div>
     {admin && <div className="rounded-xl border border-zinc-700 bg-zinc-900 p-4 space-y-2"><h3 className="font-semibold">Configurações da planta da casa</h3><p className="text-sm text-zinc-400">Escolha uma foto da planta. Depois clique em Editar mapa, arraste e redimensione as mesas. Salve para atualizar o mapa de Reservas e o mapa público.</p><input aria-label="Escolher foto da planta" type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>carregarImagem(e.target.files?.[0])} className="block max-w-full text-sm" />{imagemPendente && <button type="button" className={button} onClick={salvar}>Salvar nova foto do mapa</button>}{mapa.imagem && <button type="button" className="rounded-lg bg-zinc-700 px-3 py-2" onClick={()=>{setMapa(prev=>({...prev,imagem:''}));setImagemPendente(true);}}>Remover foto</button>}</div>}
     {mapa.imagem && <p className="text-sm text-sky-300">A foto é exibida na proporção original, sem achatar ou esticar. As mesas continuam posicionadas sobre a planta.</p>}
@@ -80,13 +95,13 @@ export default function MapaReservasEditor({ eventoId, ocupadas, onSelect, onMap
         onPointerDown={e => { if (edicao) {dragging.current = {tipo:'ambientes',id:item.id}; e.currentTarget.setPointerCapture(e.pointerId);} }}
         style={{position:'absolute',left:`${item.x}%`,top:`${item.y}%`,transform:'translate(-50%,-50%)',touchAction:'none'}}
         className={`text-[10px] sm:text-xs rounded border border-amber-600/70 bg-amber-950/80 px-2 py-1 max-w-[24%] ${edicao ? 'cursor-move' : 'cursor-default'}`}>{item.nome}</button>)}
-      {mapa.mesas.map(mesa => { const ocupada = ocupadas.has(mesa.numero); return <button key={mesa.numero} type="button"
+      {mapa.mesas.map(mesa => { const ocupada = ocupadas?.has(Number(mesa.numero)) || false; return <button key={mesa.numero} type="button"
         onPointerDown={e => { if(edicao){dragging.current = {tipo:'mesas',id:mesa.numero}; e.currentTarget.setPointerCapture(e.pointerId);} }}
         onClick={() => { if(edicao) setSelecionada(mesa.numero); else if (eventoId && mesa.ativa && !ocupada) onSelect(mesa.numero); }}
-        style={{position:'absolute',left:`${mesa.x}%`,top:`${mesa.y}%`,transform:'translate(-50%,-50%)',touchAction:'none',width:`${mesa.largura||9}%`,height:`${mesa.altura||9}%`}}
-        className={`rounded-lg border p-1 sm:p-2 text-center shadow-lg overflow-hidden ${!mesa.ativa ? 'bg-zinc-700 border-zinc-500' : ocupada ? 'bg-red-950 border-red-500' : 'bg-emerald-900 border-emerald-500'} ${edicao ? 'cursor-move' : 'cursor-pointer'}`}
+        style={{position:'absolute',left:`${mesa.x}%`,top:`${mesa.y}%`,transform:'translate(-50%,-50%)',touchAction:'none',width:`${mesa.largura||9}%`,height:`${mesa.altura||9}%`,borderRadius:mesa.formato==='redonda'?'50%':'8px',backgroundColor:mesa.ativa!==false&&!ocupada?(mesa.cor||'#065f46'):undefined}}
+        className={`border p-1 sm:p-2 text-center shadow-lg overflow-hidden ${!mesa.ativa ? 'bg-zinc-700 border-zinc-500' : ocupada ? 'bg-red-950 border-red-500' : 'bg-emerald-900 border-emerald-500'} ${edicao ? 'cursor-move' : 'cursor-pointer'}`}
         title={`${mesa.tipo||"Mesa"} ${mesa.numero} — ${mesa.capacidade} pessoas`}><strong className="block text-sm">{mesa.numero}</strong><span className="block text-[9px] sm:text-[10px]">{!mesa.ativa ? 'Inativa' : ocupada ? 'Reservada' : 'Livre'}</span></button>; })}
     </div>
-    {edicao && selecionada != null && (() => {const mesa = mapa.mesas.find(m=>m.numero===selecionada); return <div className="flex flex-wrap items-center gap-3 rounded-lg bg-zinc-900 p-3"><strong>{mesa.tipo||"Mesa"} {selecionada}</strong><label>Capacidade <input type="number" min="1" max="20" className="w-20 bg-zinc-800 p-2 rounded" value={mesa.capacidade} onChange={e=>alterar('mesas',selecionada,{capacidade:Math.max(1,Math.min(20,Number(e.target.value)||1))})}/></label><label>Largura (%) <input type="number" min="3" max="35" className="w-20 bg-zinc-800 p-2 rounded" value={mesa.largura||9} onChange={e=>alterar('mesas',selecionada,{largura:Number(e.target.value)})}/></label><label>Altura (%) <input type="number" min="3" max="35" className="w-20 bg-zinc-800 p-2 rounded" value={mesa.altura||9} onChange={e=>alterar('mesas',selecionada,{altura:Number(e.target.value)})}/></label><label className="flex items-center gap-2"><input type="checkbox" checked={mesa.ativa} onChange={e=>alterar('mesas',selecionada,{ativa:e.target.checked})}/> Ativa</label><button className={button} onClick={()=>setSelecionada(null)}>Concluir</button></div>})()}
+    {edicao && selecionada != null && (() => {const mesa = mapa.mesas.find(m=>m.numero===selecionada); return <div className="flex flex-wrap items-center gap-3 rounded-lg bg-zinc-900 p-3"><strong>{mesa.tipo||"Mesa"} {selecionada}</strong><label>Capacidade <input type="number" min="1" max="20" className="w-20 bg-zinc-800 p-2 rounded" value={mesa.capacidade} onChange={e=>alterar('mesas',selecionada,{capacidade:Math.max(1,Math.min(20,Number(e.target.value)||1))})}/></label><label>Largura (%) <input type="number" min="3" max="35" className="w-20 bg-zinc-800 p-2 rounded" value={mesa.largura||9} onChange={e=>alterar('mesas',selecionada,{largura:Number(e.target.value)})}/></label><label>Altura (%) <input type="number" min="3" max="35" className="w-20 bg-zinc-800 p-2 rounded" value={mesa.altura||9} onChange={e=>alterar('mesas',selecionada,{altura:Number(e.target.value)})}/></label><label>Formato <select className="bg-zinc-800 p-2 rounded" value={mesa.formato||'quadrada'} onChange={e=>alterar('mesas',selecionada,{formato:e.target.value})}><option value="quadrada">Quadrada</option><option value="redonda">Redonda</option></select></label><label>Cor <input type="color" className="w-16 h-10 bg-zinc-800 rounded" value={mesa.cor||'#065f46'} onChange={e=>alterar('mesas',selecionada,{cor:e.target.value})}/></label><label>Tipo <select className="bg-zinc-800 p-2 rounded" value={mesa.tipo||'Mesa'} onChange={e=>alterar('mesas',selecionada,{tipo:e.target.value})}><option>Mesa</option><option>Bistrô</option></select></label><label className="flex items-center gap-2"><input type="checkbox" checked={mesa.ativa} onChange={e=>alterar('mesas',selecionada,{ativa:e.target.checked})}/> Ativa</label><button type="button" className="rounded-lg bg-red-800 px-3 py-2" onClick={excluirSelecionada}>Excluir mesa</button><button type="button" className={button} onClick={()=>setSelecionada(null)}>Concluir</button></div>})()}
   </section>;
 }

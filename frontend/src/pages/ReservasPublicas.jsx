@@ -2,7 +2,6 @@ import './ReservasEsgotadas.css';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import ComprovanteReserva from '../components/ComprovanteReserva';
-import EditorMapaPortal from '../components/EditorMapaPortal';
 
 const dataEventoBR=(valor)=>{
   if(!valor)return "Data não informada";
@@ -40,7 +39,8 @@ export default function ReservasPublicas(){
  const [cliente,setCliente]=useState(()=>{try{return JSON.parse(sessionStorage.getItem('dlotus_cliente')||'null');}catch{return null;}});
  const [flyerAberto,setFlyerAberto]=useState(null);
  const [mapaPublico,setMapaPublico]=useState(null);
-  const [abrirEditor,setAbrirEditor]=useState(false);
+  const [proporcaoMapa,setProporcaoMapa]=useState(null);
+  const [proporcaoMapa,setProporcaoMapa]=useState(null);
  const [erroMapa,setErroMapa]=useState('');
  const [modo,setModo]=useState('login'),[cred,setCred]=useState({nome:'',whatsapp:'',senha:''});
  const [minhas,setMinhas]=useState([]),[meuBilhete,setMeuBilhete]=useState(null),[secao,setSecao]=useState('reservar');
@@ -52,8 +52,9 @@ export default function ReservasPublicas(){
  useEffect(()=>{if(!token||!cliente){setEventos([]);return;}let ativo=true;let emAndamento=false;const atualizar=async()=>{if(emAndamento)return;emAndamento=true;setCarregandoEventos(true);try{const r=await api.get('/publico/reservas/eventos',{headers:{Authorization:`Bearer ${token}`}});if(ativo&&Array.isArray(r.data)){setEventos(r.data);try{sessionStorage.setItem('dlotus_eventos_cache',JSON.stringify({at:Date.now(),data:r.data}));}catch{}}}catch{if(ativo)setErro('Não foi possível atualizar os eventos. Tente novamente.')}finally{emAndamento=false;if(ativo)setCarregandoEventos(false)}};atualizar();const timer=setInterval(atualizar,60000);return ()=>{ativo=false;clearInterval(timer)};},[token,cliente?.whatsapp]);
  useEffect(()=>{if(evento)api.get(`/publico/reservas/eventos/${evento}/mesas`).then(r=>setMesas(r.data.mesas)).catch(()=>setErro('Falha ao consultar mesas'));},[evento]);
  // O mapa público deve vir de uma rota pública segura, sem exigir login de funcionário.
- useEffect(()=>{if(!token||!cliente||!evento){setMapaPublico(null);return;}let ativo=true;setErroMapa('');api.get('/publico/reservas/mapa',{headers:{Authorization:`Bearer ${token}`}}).then(r=>{if(ativo)setMapaPublico(r.data)}).catch(()=>{if(ativo){setMapaPublico(null);setErroMapa('A planta da casa ainda não está disponível na API pública. Você pode escolher a mesa abaixo.')}});return ()=>{ativo=false};},[token,cliente,evento]);
- const mesasPublicas=(mapaPublico?.mesas||mesas).map(m=>({...m,disponivel:mesas.some(v=>Number(v.numero)===Number(m.numero)&&v.disponivel)&&m.ativa!==false}));
+ useEffect(()=>{if(!token||!cliente||!evento){setMapaPublico(null);return;}let ativo=true;setErroMapa('');api.get('/publico/reservas/mapa',{params:{_at:Date.now()},headers:{Authorization:`Bearer ${token}`,'Cache-Control':'no-cache'}}).then(r=>{if(ativo)setMapaPublico(r.data)}).catch(()=>{if(ativo){setMapaPublico(null);setErroMapa('A planta da casa ainda não está disponível na API pública. Você pode escolher a mesa abaixo.')}});return ()=>{ativo=false};},[token,cliente,evento]);
+   useEffect(()=>{if(!mapaPublico?.imagem){setProporcaoMapa(null);return;}let ativo=true;const img=new Image();img.onload=()=>{if(ativo&&img.naturalWidth&&img.naturalHeight)setProporcaoMapa(`${img.naturalWidth} / ${img.naturalHeight}`)};img.src=mapaPublico.imagem;return()=>{ativo=false};},[mapaPublico?.imagem]);
+const mesasPublicas=(mapaPublico?.mesas||mesas).map(m=>({...m,disponivel:mesas.some(v=>Number(v.numero)===Number(m.numero)&&v.disponivel)&&m.ativa!==false}));
  const selecionarMesa=(numero)=>{if(!mesasPublicas.some(m=>Number(m.numero)===Number(numero)&&m.disponivel))return;setForm(f=>({...f,mesa:Number(numero)}));};
  const {inicio,fim}=proximaSemana();
  const eventosDaSemana=eventosEmOrdem(eventos.filter(x=>x.publicado!==false && String(x.data||'').slice(0,10)>=inicio && String(x.data||'').slice(0,10)<=fim));
@@ -74,10 +75,10 @@ export default function ReservasPublicas(){
  <p className="text-sm text-zinc-400">Verde: disponível · Vermelho: reservada · Cinza: inativa. Toque na mesa desejada.</p>
  {erroMapa&&<p className="text-amber-300 text-sm">{erroMapa}</p>}
  {mapaPublico?.imagem&&<p className="text-xs text-sky-200">Planta da D’Lotus</p>}
- {mapaPublico&&<div className="relative w-full min-h-[340px] sm:min-h-[520px] rounded-2xl border-2 border-orange-500/50 bg-zinc-950 overflow-hidden shadow-[0_0_30px_rgba(249,115,22,.12)]" style={{aspectRatio:'1.4 / 1',backgroundImage:mapaPublico.imagem?`url(${mapaPublico.imagem})`:undefined,backgroundPosition:'center',backgroundRepeat:'no-repeat',backgroundSize:'contain'}}>
+ {mapaPublico&&<div className="w-full overflow-x-auto pb-3"><div className="relative w-full min-w-[760px] sm:min-w-[950px] lg:min-w-[1100px] rounded-2xl border-2 border-orange-500/50 bg-zinc-950 overflow-hidden shadow-[0_0_30px_rgba(249,115,22,.12)]" style={{aspectRatio:proporcaoMapa||'1.4 / 1',backgroundImage:mapaPublico.imagem?`url(${mapaPublico.imagem})`:undefined,backgroundPosition:'center',backgroundRepeat:'no-repeat',backgroundSize:'contain'}}>
  {(mapaPublico.ambientes||[]).map(a=><span key={a.id} className="absolute text-[9px] sm:text-xs bg-amber-950/90 border border-amber-600 rounded px-1 text-center pointer-events-none" style={{left:`${a.x}%`,top:`${a.y}%`,transform:'translate(-50%,-50%)'}}>{a.nome}</span>)}
  {mesasPublicas.map(m=><button key={m.numero} type="button" disabled={!m.disponivel} onClick={()=>selecionarMesa(m.numero)} title={`${m.tipo||'Mesa'} ${m.numero}`} className={`absolute border text-[10px] sm:text-sm font-bold flex flex-col items-center justify-center ${!m.disponivel?(m.ativa===false?'bg-zinc-700 border-zinc-500':'bg-red-950 border-red-500'):Number(form.mesa)===Number(m.numero)?'bg-orange-500 border-orange-200 text-black ring-2 ring-white':'bg-emerald-900 border-emerald-400'}`} style={{left:`${m.x??50}%`,top:`${m.y??50}%`,width:`${m.largura||9}%`,height:`${m.altura||9}%`,transform:'translate(-50%,-50%)',borderRadius:m.formato==='redonda'?'50%':'8px',backgroundColor:m.disponivel&&Number(form.mesa)!==Number(m.numero)?(m.cor||'#065f46'):undefined}}>{m.numero}<span className="text-[8px]">{m.disponivel?'Livre':'Ocupada'}</span></button>)}
- </div>}
+ </div></div>}
  {!mapaPublico&&<div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 sm:gap-4">{mesasPublicas.map(m=><button key={m.numero} type="button" disabled={!m.disponivel} onClick={()=>selecionarMesa(m.numero)} className={`rounded-lg p-3 text-sm ${!m.disponivel?'bg-red-950 opacity-60':Number(form.mesa)===Number(m.numero)?'bg-orange-500 text-black':'bg-emerald-900'}`}>{m.tipo||'Mesa'} {m.numero}</button>)}</div>}
  {evento&&mesas.length>0&&!mesas.some(m=>m.disponivel)&&<p className="rounded-xl bg-red-950 p-4 font-bold">RESERVAS ESGOTADAS</p>}
  <form onSubmit={solicitar} className="space-y-3 rounded-xl bg-zinc-900 p-4">
