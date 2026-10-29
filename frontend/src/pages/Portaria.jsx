@@ -4,7 +4,7 @@ import { CloseNeonPreview, shareClosePng } from "../lib/closeNeon";
 import api, { formatBRL, formatDate } from "../lib/api";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
-import { UserPlus, DoorOpen, Users, Settings, History, Wallet, Moon, Lock, Unlock, X, CheckCircle2, Search, AlertTriangle, Printer, QrCode } from "lucide-react";
+import { UserPlus, DoorOpen, Users, Settings, History, Wallet, Moon, Lock, Unlock, X, CheckCircle2, Search, AlertTriangle, Printer, QrCode, Camera, Keyboard } from "lucide-react";
 import { silentPrintCashClose, pickCaixaPrinter, isDesktop } from "../lib/desktopPrint";
 
 const TABS = [
@@ -63,8 +63,9 @@ export default function Portaria() {
   );
 }
 
-// ========== Reservas QR Code ==========
+// ========== Reservas QR Code — visual Portaria D’Lotus ==========
 function ReservasQRPortaria() {
+  const [modo, setModo] = useState("camera");
   const [codigo, setCodigo] = useState("");
   const [processando, setProcessando] = useState(false);
   const [resultado, setResultado] = useState(null);
@@ -85,17 +86,41 @@ function ReservasQRPortaria() {
     }
   };
   return (
-    <section className="max-w-2xl mx-auto bg-[#121215] border border-[#D4AF37]/30 rounded-2xl p-5 space-y-4">
-      <h2 className="font-display text-xl font-bold text-[#D4AF37] flex items-center gap-2"><QrCode size={24}/> Reservas — Ler QR Code</h2>
-      <p className="text-sm text-zinc-400">Aponte a câmera para o QR Code da reserva ou digite o código. A confirmação registra a entrada no sistema de Reservas.</p>
-      <LeitorQRReserva onLido={validar} />
-      <form onSubmit={(e) => { e.preventDefault(); validar(codigo); }} className="space-y-3">
-        <label className="block text-sm text-zinc-300">Código da reserva</label>
-        <input value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder="Cole ou digite o código do QR" className="w-full bg-[#09090b] border border-white/20 rounded-lg p-3 text-white" />
-        <button disabled={processando || !codigo.trim()} className="w-full rounded-lg bg-[#D4AF37] p-3 text-black font-bold disabled:opacity-50">{processando ? "Validando..." : "Validar e registrar entrada"}</button>
-      </form>
-      {resultado && <div role="status" className="rounded-xl border border-emerald-500/40 bg-emerald-950/30 p-4 space-y-1">
-        <p className="font-bold text-emerald-300">Entrada autorizada!</p>
+    <section className="mx-auto w-full max-w-3xl overflow-hidden rounded-[28px] border border-cyan-900/30 bg-gradient-to-b from-[#061016] via-[#080b13] to-[#100815] px-4 py-8 text-white shadow-2xl sm:px-8 sm:py-10">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.38em] text-blue-700 sm:text-sm">ENTRADA</p>
+      <h2 className="text-4xl font-black tracking-tight text-white sm:text-6xl">Portaria</h2>
+      <p className="mt-5 max-w-2xl text-base leading-relaxed text-zinc-400 sm:text-xl">Escaneie o QR Code do cliente ou digite o código da reserva.</p>
+
+      <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4" role="group" aria-label="Modo de leitura da reserva">
+        <button type="button" onClick={() => {setModo("camera");setResultado(null);}} aria-pressed={modo === "camera"} className={`flex min-h-16 items-center justify-center gap-2 rounded-2xl border px-2 py-4 text-sm font-semibold transition sm:text-xl ${modo === "camera" ? "border-cyan-500/60 bg-cyan-500/15 text-cyan-300 shadow-[0_0_0_1px_rgba(34,211,238,.12)]" : "border-white/10 bg-black/25 text-zinc-400 hover:border-cyan-700/50"}`}><Camera size={22}/> Câmera</button>
+        <button type="button" onClick={() => {setModo("codigo");setResultado(null);}} aria-pressed={modo === "codigo"} className={`flex min-h-16 items-center justify-center gap-2 rounded-2xl border px-2 py-4 text-sm font-semibold transition sm:text-xl ${modo === "codigo" ? "border-cyan-500/60 bg-cyan-500/15 text-cyan-300 shadow-[0_0_0_1px_rgba(34,211,238,.12)]" : "border-white/10 bg-black/25 text-zinc-400 hover:border-cyan-700/50"}`}><Keyboard size={22}/> Digitar código</button>
+      </div>
+
+      {modo === "camera" ? (
+        <div className="mt-7 rounded-[26px] border border-white/10 bg-[#101018]/80 p-4 sm:p-6">
+          <div className="relative overflow-hidden rounded-2xl border border-cyan-900/50 bg-black/80 p-3 sm:p-6">
+            <div className="pointer-events-none absolute inset-[9%] z-10" aria-hidden="true">
+              <span className="absolute left-0 top-0 h-14 w-14 border-l-[5px] border-t-[5px] border-white sm:h-20 sm:w-20" />
+              <span className="absolute right-0 top-0 h-14 w-14 border-r-[5px] border-t-[5px] border-white sm:h-20 sm:w-20" />
+              <span className="absolute bottom-0 left-0 h-14 w-14 border-b-[5px] border-l-[5px] border-white sm:h-20 sm:w-20" />
+              <span className="absolute bottom-0 right-0 h-14 w-14 border-b-[5px] border-r-[5px] border-white sm:h-20 sm:w-20" />
+            </div>
+            <div className="relative z-0 min-h-64 [&_video]:w-full [&_video]:rounded-lg [&_video]:object-cover">
+              <LeitorQRReserva onLido={validar} />
+            </div>
+          </div>
+          <p className="mt-5 flex items-center justify-center gap-2 text-center text-sm text-zinc-400 sm:text-base"><QrCode size={18}/> Aponte a câmera para o QR Code do cliente</p>
+          {processando && <p className="mt-2 text-center text-cyan-300" role="status">Validando reserva...</p>}
+        </div>
+      ) : (
+        <form onSubmit={(e) => {e.preventDefault();validar(codigo);}} className="mt-7 space-y-4 rounded-[26px] border border-white/10 bg-[#101018]/80 p-5 sm:p-7">
+          <label htmlFor="codigo-reserva-portaria" className="block font-semibold text-zinc-200">Código da reserva</label>
+          <input id="codigo-reserva-portaria" autoFocus autoComplete="off" value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder="Digite ou cole o código do QR Code" className="w-full rounded-xl border border-cyan-900/60 bg-black/60 p-4 text-white outline-none focus:border-cyan-400" />
+          <button type="submit" disabled={processando || !codigo.trim()} className="w-full rounded-xl bg-cyan-500 px-5 py-4 font-bold text-slate-950 transition hover:bg-cyan-400 disabled:opacity-50">{processando ? "Validando..." : "Validar e registrar entrada"}</button>
+        </form>
+      )}
+      {resultado && <div role="status" className="mt-6 space-y-2 rounded-2xl border border-emerald-500/40 bg-emerald-950/30 p-5 text-emerald-100">
+        <p className="flex items-center gap-2 text-lg font-bold text-emerald-300"><CheckCircle2 size={22}/> Entrada autorizada!</p>
         <p>Cliente: {resultado.cliente}</p>
         <p>Mesa: {resultado.mesa} · Pessoas: {resultado.pessoas}</p>
       </div>}
