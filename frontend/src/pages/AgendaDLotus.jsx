@@ -83,7 +83,7 @@ export default function AgendaDLotus(){
   <div className="dl-banner-luz dl-banner-luz-azul" aria-hidden="true"/>
   <div className="dl-banner-luz dl-banner-luz-rosa" aria-hidden="true"/>
   <div className="dl-banner-brilho" aria-hidden="true"/>
-  <div className="dl-banner-equalizador" aria-hidden="true">{Array.from({length:32},(_,i)=><span key={i} style={{animationDelay:`-${((i*7)%23)*0.09}s`,animationDuration:`${0.65+(i%7)*0.12}s`}} />)}</div>
+  <div className="dl-banner-equalizador" aria-hidden="true">{Array.from({length:32},(_,i)=><span key={i} style={{animationDelay:`-${i*.11}s`,animationDuration:`${.65+(i%7)*.13}s`}} />)}</div>
 </div><div className="flex justify-end"><button onClick={()=>openNew()} className="agenda-new-attraction bg-sky-600 hover:bg-sky-500 rounded-xl px-5 py-3 font-bold flex gap-2 items-center"><Plus size={18}/> Nova atração</button></div></header>
  {error&&<div role="alert" className="bg-red-950 border border-red-700 text-red-200 rounded-xl p-3">{error}</div>}
  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">{[['Próxima atração',next[0]?.artista||'Nenhuma',next[0]?fmt(next[0].inicio):''],['Esta semana',week.length,'atrações'],['Este mês',thisMonth.length,'atrações'],['Cachês pendentes',money(pending),'saldo a pagar']].map(([title,val,sub])=><div key={title} className={card}><div className="text-xs text-slate-400">{title}</div><div className="font-extrabold text-xl md:text-2xl text-cyan-300 mt-2 break-words">{val}</div><div className="text-xs text-slate-400 mt-1">{sub}</div></div>)}</div>
