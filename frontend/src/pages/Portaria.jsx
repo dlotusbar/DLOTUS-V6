@@ -71,6 +71,12 @@ function ReservasQRPortaria() {
   const [resultado, setResultado] = useState(null);
   const validandoRef = useRef(false);
   const leitorRef = useRef(null);
+  // Ao entrar na aba Reservas QR, tenta abrir a câmera automaticamente.
+  // Alguns WebViews/Android exigem toque: o botão Câmera permanece para nova tentativa.
+  useEffect(() => {
+    leitorRef.current?.iniciar();
+    return () => leitorRef.current?.parar();
+  }, []);
   const validar = async (valor) => {
     const token = String(valor || "").trim();
     if (!token || validandoRef.current) return;
