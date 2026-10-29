@@ -28,6 +28,13 @@ const eventosEmOrdem=(lista)=>[...lista].sort((a,b)=>
 
 
 // Cenário decorativo sem dependência externa: DJ vetorial com movimentos CSS.
+const ABAS_PORTAL = [
+  {id:"eventos",nome:"Eventos disponíveis"},
+  {id:"mesas",nome:"Escolher mesa"},
+  {id:"minhas",nome:"Minhas reservas e QR Code"},
+  {id:"contato",nome:"Contato / WhatsApp"},
+];
+const PORTAL_PADRAO = {eventos:true,mesas:true,minhas:true,contato:false};
 const field = "w-full rounded-lg bg-zinc-900 border border-zinc-700 p-3 text-white";
 export default function ReservasV5() {
   const [tab,setTab]=useState("dashboard");
@@ -50,6 +57,16 @@ export default function ReservasV5() {
   const [configTab,setConfigTab]=useState("pagamentos");
   const [linkPublico,setLinkPublico]=useState("");
   const [linkMsg,setLinkMsg]=useState("");
+  // Configuração visual local até existir endpoint público com autenticação e autorização.
+  const [abasPortal,setAbasPortal]=useState(()=>{
+    try {return {...PORTAL_PADRAO,...JSON.parse(localStorage.getItem("dlotus_reservas_portal_abas")||"{}")};}
+    catch {return {...PORTAL_PADRAO};}
+  });
+  const [portalMsg,setPortalMsg]=useState("");
+  const salvarAbasPortal=()=>{
+    try {localStorage.setItem("dlotus_reservas_portal_abas",JSON.stringify(abasPortal));setPortalMsg("Preferências salvas neste navegador. A publicação para clientes exige integração com o servidor.");}
+    catch {setPortalMsg("Não foi possível salvar as preferências neste navegador.");}
+  };
   const [series,setSeries]=useState([]);
   const [novaSerie,setNovaSerie]=useState({nome:"",dia_semana:3,horario:"22:00",preco_reserva:0});
   const [flyerAberto,setFlyerAberto]=useState(null);
@@ -152,7 +169,16 @@ export default function ReservasV5() {
     {tab==="clientes"&&<section className="space-y-3"><h2 className="text-xl font-bold">Clientes de reservas</h2>{Array.from(new Map(reservas.filter(r=>r.telefone).map(r=>[r.telefone,r])).values()).map(r=><div key={r.telefone} className="p-3 rounded bg-zinc-900">{r.cliente} · {r.telefone}</div>)}</section>}
     {tab==="funcionarios"&&<section className="rounded-xl bg-zinc-900 p-5"><h2 className="font-bold">Funcionários</h2><p className="text-zinc-400 mt-2">O cadastro e as permissões dos funcionários permanecem na aba Funcionários do PDV. Utilize essa aba para gerenciar os acessos.</p><a href="/funcionarios" className="text-cyan-300 underline">Abrir funcionários do PDV</a></section>}
     {tab==="configuracoes"&&<section className="space-y-5"><h2 className="text-xl font-bold">Configurações das Reservas</h2>
-      <div className="flex flex-wrap gap-2"><button onClick={()=>setConfigTab("link") } className={`rounded-lg px-5 py-3 ${configTab==="link"?"bg-sky-600":"bg-zinc-800"}`}>Link Público</button><button onClick={()=>setConfigTab("pagamentos")} className={`rounded-lg px-5 py-3 ${configTab==="pagamentos"?"bg-sky-600":"bg-zinc-800"}`}>Pagamentos</button></div>
+      <div className="flex flex-wrap gap-2"><button onClick={()=>setConfigTab("link") } className={`rounded-lg px-5 py-3 ${configTab==="link"?"bg-sky-600":"bg-zinc-800"}`}>Link Público</button><button onClick={()=>setConfigTab("pagamentos")} className={`rounded-lg px-5 py-3 ${configTab==="pagamentos"?"bg-sky-600":"bg-zinc-800"}`}>Pagamentos</button><button type="button" onClick={()=>setConfigTab("portal")} className={`rounded-lg px-5 py-3 ${configTab==="portal"?"bg-sky-600":"bg-zinc-800"}`}>Portal do Cliente</button></div>
+      {configTab==="portal"&&<section className="rounded-2xl bg-zinc-950 border border-sky-900 p-5 space-y-4 max-w-2xl">
+        <h3 className="font-bold text-xl text-sky-300">Configurar Portal do Cliente</h3>
+        <p className="text-zinc-300 text-sm">Escolha as áreas que deverão aparecer para o cliente no portal público.</p>
+        <div className="space-y-3">{ABAS_PORTAL.map(aba=><label key={aba.id} className="flex items-center gap-3 rounded-xl border border-zinc-700 bg-zinc-900 p-3"><input type="checkbox" checked={!!abasPortal[aba.id]} onChange={e=>{setAbasPortal(v=>({...v,[aba.id]:e.target.checked}));setPortalMsg("");}}/><span>{aba.nome}</span></label>)}</div>
+        <div className="rounded-xl border border-cyan-500/30 bg-slate-900 p-4 space-y-2"><h4 className="font-semibold text-cyan-300">Prévia das abas do cliente</h4><div className="flex flex-wrap gap-2">{ABAS_PORTAL.filter(aba=>abasPortal[aba.id]).map(aba=><span key={aba.id} className="rounded-lg bg-sky-700 px-3 py-2 text-sm">{aba.nome}</span>)}</div><p className="text-xs text-zinc-400">Cadastro e login por telefone e senha, pagamento via Mercado Pago e reserva gratuita somente para reservistas autorizados são regras obrigatórias do portal.</p></div>
+        <button type="button" onClick={salvarAbasPortal} className="rounded-lg bg-sky-600 px-5 py-3 font-semibold">Salvar preferências</button>
+        {portalMsg&&<p role="status" className="text-amber-200 text-sm">{portalMsg}</p>}
+        <p className="text-sm text-amber-300">Esta etapa configura a interface do PDV. Para aplicar as opções no link público e habilitar cadastro, senha, permissões e pagamentos reais, ainda será necessário implementar e conectar as rotas do portal no backend. Nenhuma reserva gratuita pode ser autorizada apenas pelo navegador.</p>
+      </section>}
       {configTab==="link"&&<form onSubmit={salvarLink} className="rounded-2xl bg-zinc-950 border border-sky-900 p-5 space-y-4 max-w-2xl"><h3 className="font-bold text-xl">Link Público de Reservas</h3><p className="text-zinc-400">Quando publicar o portal, cole aqui o endereço HTTPS exclusivo dos clientes. O endereço local só funciona na rede onde o PDV está disponível.</p><input className={field} type="url" placeholder="https://reservas.seudominio.com.br" value={linkPublico} onChange={e=>setLinkPublico(e.target.value)}/><button type="submit" className="bg-sky-600 rounded-lg px-5 py-3">Salvar link</button>{linkMsg&&<p role="status">{linkMsg}</p>}</form>}
       {configTab==="pagamentos"&&<form onSubmit={salvarMp} className="rounded-2xl bg-zinc-950 border border-sky-900 p-5 space-y-5 max-w-2xl">
         <h3 className="text-xl font-bold text-sky-300">Pix Mercado Pago</h3>
