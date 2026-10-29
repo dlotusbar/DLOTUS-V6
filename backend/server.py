@@ -3612,6 +3612,36 @@ async def agenda_conflicts(ini, fim, exclude=None):
                 clashes.append({"id":occ["id"],"artista":occ["artista"],"inicio":occ["inicio"],"fim":occ["fim"]})
     return clashes
 
+# Cadastro permanente de artistas para reutilização na agenda.
+def agenda_artist_kind(tipo):
+    return "DJ" if str(tipo).strip().lower() == "dj" else "Banda"
+
+async def agenda_register_artist(doc):
+    name = str(doc.get("artista") or "").strip()
+    if not name: return
+    kind = agenda_artist_kind(doc.get("tipo"))
+    key = kind + ":" + name.casefold()
+    await db.agenda_artistas.update_one({"chave": key}, {"$setOnInsert": {
+        "id": new_id(), "chave": key, "nome": name, "categoria": kind,
+        "telefone": doc.get("telefone") or "", "cache": doc.get("cache") or 0,
+        "observacoes": "", "criado_em": now_iso()}}, upsert=True)
+
+@api.get("/agenda/artistas")
+async def agenda_artists(user: dict = Depends(get_current_user)):
+    return await db.agenda_artistas.find({}, {"_id": 0}).sort("nome", 1).to_list(10000)
+
+@api.put("/agenda/artistas/{artist_id}")
+async def agenda_artist_edit(artist_id: str, data: dict, user: dict = Depends(get_current_user)):
+    if str(user.get("role") or "").strip().lower() not in ("admin", "administrador", "gerente"):
+        raise HTTPException(403, "Apenas administradores e gerentes")
+    allowed = {k:data[k] for k in ("telefone", "cache", "observacoes") if k in data}
+    if "cache" in allowed:
+        try: allowed["cache"] = max(0, float(allowed["cache"]))
+        except (ValueError, TypeError): raise HTTPException(422, "Cachê inválido")
+    result = await db.agenda_artistas.update_one({"id":artist_id}, {"$set":allowed})
+    if not result.matched_count: raise HTTPException(404, "Artista não encontrado")
+    return {"ok": True}
+
 @api.get("/agenda/atracoes")
 async def agenda_list(inicio: Optional[str] = None, fim: Optional[str] = None, user: dict = Depends(get_current_user)):
     docs = await db.agenda_atracoes.find({}, {"_id": 0}).sort("inicio", 1).to_list(10000)
@@ -3653,6 +3683,7 @@ async def agenda_create(data: AgendaAttractionIn, user: dict = Depends(get_curre
         doc["recorrencia"] = "nenhuma"
     doc.update(id=new_id(), criado_em=now_iso())
     await db.agenda_atracoes.insert_one(doc)
+    await agenda_register_artist(doc)
     doc.pop("_id", None)
     return doc
 
