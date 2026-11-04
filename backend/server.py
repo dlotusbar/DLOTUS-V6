@@ -3801,7 +3801,7 @@ async def prazo_credito(cid: str, data_noite: str, user: dict = Depends(get_curr
     try: datetime.strptime(data_noite, "%Y-%m-%d")
     except ValueError: raise HTTPException(400, "Data inválida")
     conta = await db.prazo_contas.find_one({"id": cid}, {"_id": 0})
-    if not conta or conta.get("excluido"): raise HTTPException(404, "Cliente não encontrado")
+    if not conta: raise HTTPException(404, "Cliente não encontrado")
     return _prazo_disponivel(conta, data_noite)
 
 @api.put("/prazo/contas/{cid}/politica")
@@ -3826,7 +3826,7 @@ async def prazo_vencimento(cid: str, data: PrazoVencimentoIn, user: dict = Depen
 
 @api.get("/prazo/contas")
 async def prazo_listar(user: dict = Depends(get_current_user)):
-    return await db.prazo_contas.find({"excluido": {"$ne": True}}, {"_id": 0}).sort("criado_em", -1).to_list(10000)
+    return await db.prazo_contas.find({"arquivado": {"$ne": True}}, {"_id": 0}).sort("criado_em", -1).to_list(10000)
 
 @api.post("/prazo/contas")
 async def prazo_criar(data: PrazoContaIn, user: dict = Depends(get_current_user)):
@@ -3847,45 +3847,27 @@ async def prazo_criar(data: PrazoContaIn, user: dict = Depends(get_current_user)
     conta.pop("_id", None)
     return conta
 
-class PrazoClienteEdicaoIn(BaseModel):
-    cliente: str
-    telefone: str = ""
-    mesa: str = ""
-    observacoes: str = ""
-
-@api.put("/prazo/contas/{cid}/cliente")
-async def prazo_editar_cliente(cid: str, data: PrazoClienteEdicaoIn, user: dict = Depends(get_current_user)):
-    if user.get("role", "").lower() not in ("administrador", "gerente", "caixa"):
-        raise HTTPException(403, "Sem permissão para editar clientes")
-    if not data.cliente.strip():
-        raise HTTPException(400, "Informe o nome do cliente")
-    anterior = await db.prazo_contas.find_one({"id": cid}, {"_id": 0})
-    if not anterior or anterior.get("excluido"):
-        raise HTTPException(404, "Cliente não encontrado")
-    novos = {"cliente": data.cliente.strip(), "telefone": data.telefone.strip(),
-             "mesa": data.mesa.strip(), "observacoes": data.observacoes.strip()}
-    await db.prazo_contas.update_one({"id": cid}, {"$set": novos})
-    await audit("prazo_cliente_editado", user, "prazo_contas", cid,
-                {"antes": {k: anterior.get(k) for k in novos}, "depois": novos})
-    return {"ok": True}
-
-@api.delete("/prazo/contas/{cid}/cliente")
-async def prazo_excluir_cliente(cid: str, user: dict = Depends(get_current_user)):
+@api.delete("/prazo/contas/{cid}")
+async def prazo_excluir(cid: str, user: dict = Depends(get_current_user)):
     _prazo_admin(user)
     conta = await db.prazo_contas.find_one({"id": cid}, {"_id": 0})
-    if not conta or conta.get("excluido"):
-        raise HTTPException(404, "Cliente não encontrado")
-    if abs(float(conta.get("saldo", 0))) > 0.001:
-        raise HTTPException(409, "Cliente com saldo pendente não pode ser excluído")
-    if conta.get("lancamentos") or conta.get("recebimentos"):
-        raise HTTPException(409, "Cliente com histórico financeiro não pode ser excluído. Preserve o histórico para auditoria")
-    if await db.orders.count_documents({"prazo_conta_id": cid}):
-        raise HTTPException(409, "Cliente vinculado a vendas não pode ser excluído")
-    result = await db.prazo_contas.update_one({"id": cid, "excluido": {"$ne": True}},
-        {"$set": {"excluido": True, "excluido_em": now_iso(), "excluido_por": user["id"]}})
-    if not result.modified_count:
-        raise HTTPException(409, "Cadastro já foi alterado")
-    await audit("prazo_cliente_excluido", user, "prazo_contas", cid, {"cliente": conta.get("cliente")})
+    if not conta: raise HTTPException(404, "Cliente não encontrado")
+    if round(float(conta.get("saldo", 0)), 2) != 0 or conta.get("lancamentos") or conta.get("recebimentos"):
+        raise HTTPException(409, "Cliente com dívida ou movimentações não pode ser excluído. Quite a dívida e arquive para preservar o histórico.")
+    result = await db.prazo_contas.delete_one({"id": cid, "saldo": {"$lte": 0}, "lancamentos": [], "recebimentos": []})
+    if not result.deleted_count: raise HTTPException(409, "Cadastro alterado. Atualize e tente novamente")
+    await audit("prazo_excluir", user, "prazo_contas", cid, {"cliente": conta.get("cliente")})
+    return {"ok": True}
+
+@api.put("/prazo/contas/{cid}/arquivar")
+async def prazo_arquivar(cid: str, user: dict = Depends(get_current_user)):
+    _prazo_admin(user)
+    conta = await db.prazo_contas.find_one({"id": cid}, {"_id": 0})
+    if not conta: raise HTTPException(404, "Cliente não encontrado")
+    if round(float(conta.get("saldo", 0)), 2) != 0: raise HTTPException(409, "Cliente com dívida não pode ser arquivado")
+    result = await db.prazo_contas.update_one({"id": cid, "saldo": {"$lte": 0}}, {"$set": {"arquivado": True, "arquivado_em": now_iso()}})
+    if not result.modified_count: raise HTTPException(409, "Cadastro alterado ou já arquivado")
+    await audit("prazo_arquivar", user, "prazo_contas", cid, {"cliente": conta.get("cliente")})
     return {"ok": True}
 
 @api.post("/prazo/contas/{cid}/lancamentos")
@@ -3898,7 +3880,7 @@ async def prazo_lancar(cid: str, data: PrazoLancamentoIn, user: dict = Depends(g
     try: datetime.strptime(data_noite, "%Y-%m-%d")
     except ValueError: raise HTTPException(400, "Data da noite inválida")
     conta = await db.prazo_contas.find_one({"id": cid}, {"_id": 0})
-    if not conta or conta.get("excluido"): raise HTTPException(404, "Conta não encontrada")
+    if not conta: raise HTTPException(404, "Conta não encontrada")
     credito = _prazo_disponivel(conta, data_noite)
     valor = round(data.valor * data.quantidade, 2)
     if not credito["autorizado"] or (credito["disponivel"] is not None and valor > credito["disponivel"]):
@@ -3917,7 +3899,7 @@ async def prazo_receber(cid: str, data: PrazoRecebimentoIn, user: dict = Depends
         raise HTTPException(403, "Somente caixa ou administrador registra recebimentos")
     # Esta etapa registra a baixa na conta a receber, sem lançar no caixa automaticamente.
     conta = await db.prazo_contas.find_one({"id": cid}, {"_id": 0})
-    if not conta or conta.get("excluido"):
+    if not conta:
         raise HTTPException(404, "Conta não encontrada")
     if round(data.valor, 2) > round(conta.get("saldo", 0), 2):
         raise HTTPException(400, "Pagamento maior que o saldo em aberto")
