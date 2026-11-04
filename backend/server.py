@@ -3824,6 +3824,25 @@ async def prazo_vencimento(cid: str, data: PrazoVencimentoIn, user: dict = Depen
     await audit("prazo_vencimento", user, "prazo_contas", cid, {"vencimento": data.vencimento})
     return {"ok": True}
 
+class PrazoCadastroUpdateIn(BaseModel):
+    cliente: str
+    telefone: str = ""
+    mesa: str = ""
+    observacoes: str = ""
+
+@api.put("/prazo/contas/{cid}/cadastro")
+async def prazo_editar_cadastro(cid: str, data: PrazoCadastroUpdateIn, user: dict = Depends(get_current_user)):
+    if str(user.get("role", "")).lower() not in ("administrador", "admin", "gerente", "caixa", "atendente"):
+        raise HTTPException(403, "Sem permissão para editar cliente")
+    if not data.cliente.strip():
+        raise HTTPException(400, "Informe o nome do cliente")
+    changes = {k: getattr(data, k).strip() for k in ("cliente", "telefone", "mesa", "observacoes")}
+    result = await db.prazo_contas.update_one({"id": cid, "arquivado": {"$ne": True}}, {"$set": changes})
+    if not result.matched_count:
+        raise HTTPException(404, "Cliente não encontrado")
+    await audit("prazo_editar_cadastro", user, "prazo_contas", cid, changes)
+    return {"ok": True}
+
 @api.get("/prazo/contas")
 async def prazo_listar(user: dict = Depends(get_current_user)):
     return await db.prazo_contas.find({"arquivado": {"$ne": True}}, {"_id": 0}).sort("criado_em", -1).to_list(10000)
