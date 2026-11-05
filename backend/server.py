@@ -290,9 +290,17 @@ async def purchase_finish(sector: str, data: PurchaseFinishIn, user: dict = Depe
     missing=[p["name"] for p in active if p["id"] not in data.quantities or (int(p.get("units_per_package") or 1)>1 and p["id"] not in data.packages)]
     if missing: raise HTTPException(400,"Contagem incompleta. Faltam: "+", ".join(missing[:30])+("..." if len(missing)>30 else ""))
     finished={"counter_id":counter["id"],"counter_name":counter["name"],"finished_at":now_iso(),"quantities":data.quantities,"packages":data.packages}
-    await db.purchase_drafts.update_one({"sector":sector},{"$set":{"quantities":data.quantities,"packages":data.packages,"finished":finished,"updated_at":now_iso(),"finished":None}},upsert=True)
+    await db.purchase_drafts.update_one({"sector":sector},{"$set":{"quantities":data.quantities,"packages":data.packages,"finished":finished,"updated_at":now_iso()}},upsert=True)
+    history={"id":new_id(),"sector":sector,"counter_name":counter["name"],
+             "created_at":finished["finished_at"],"finished_at":finished["finished_at"],
+             "rows":[{"product_id":p["id"],"name":p["name"],"sector":sector,
+                      "category":p.get("category"),"quantity":float(data.quantities.get(p["id"],0))+
+                      float(data.packages.get(p["id"],0))*max(1,int(p.get("units_per_package") or 1))}
+                     for p in active]}
+    await db.purchase_counts.insert_one(history)
+    generated=await purchase_save_latest_list(sector, finished, user, "total")
     await audit("compras_contagem_finalizada",user,"purchase_draft",sector,{"counter":counter["name"],"items":len(active)})
-    return {"ok":True,"finished":finished}
+    return {"ok":True,"finished":finished,"list_id":generated["id"]}
 
 @api.get("/compras/produtos")
 async def purchase_products(user: dict = Depends(get_current_user)):
@@ -416,14 +424,7 @@ async def purchase_history_detail(cid: str, user: dict = Depends(get_current_use
     if not doc["rows"]: raise HTTPException(403, "Sem acesso à contagem")
     return doc
 
-@api.post("/compras/gerar-lista")
-async def purchase_generate_current(sector: str = "bar", mode: str = "total", user: dict = Depends(get_current_user)):
-    if not purchase_admin(user): raise HTTPException(403, "Somente administrador gera listas")
-    purchase_check_sector(user, sector)
-    if mode not in ("total", "reduzida"): raise HTTPException(400, "Tipo de compra inválido")
-    draft = await db.purchase_drafts.find_one({"sector":sector}, {"_id":0}) or {}
-    finished = draft.get("finished")
-    if not finished: raise HTTPException(400,"Finalize a contagem e selecione o contador antes de gerar a lista")
+async def purchase_save_latest_list(sector, finished, user, mode="total"):
     quantities = finished.get("quantities", {})
     packages = finished.get("packages", {})
     products = await db.purchase_products.find({"archived":{"$ne":True}}, {"_id":0}).to_list(5000)
@@ -446,16 +447,27 @@ async def purchase_generate_current(sector: str = "bar", mode: str = "total", us
         buy_units=buy_packages*pack if buy_packages is not None else missing
         cost=p.get("cost")
         rows.append({"product_id":pid,"name":p["name"],"category":p["category"],"sector":sector,"unit":p.get("unit","unidade"),"quantity":quantity,"target":target,"missing":missing,"purchase_quantity":buy_units,"purchase_packages":buy_packages,"units_per_package":pack,"cost":cost,"subtotal":round(buy_units*cost,2) if cost is not None else None})
-    doc={"id":new_id(),"sector":sector,"mode":mode,"created_at":now_iso(),"created_by":user.get("username"),"created_by_name":user.get("name"),"counter_name":finished["counter_name"],"finished_at":finished["finished_at"],"rows":rows,"total_known":round(sum(r["subtotal"] for r in rows if r["subtotal"] is not None),2),"has_unpriced":any(r["subtotal"] is None for r in rows)}
+    doc={"id":new_id(),"sector":sector,"mode":mode,"created_at":now_iso(),
+         "created_by":user.get("username"),"created_by_name":user.get("name"),
+         "counter_name":finished["counter_name"],"finished_at":finished["finished_at"],
+         "rows":rows,"total_known":round(sum(r["subtotal"] for r in rows if r["subtotal"] is not None),2),
+         "has_unpriced":any(r["subtotal"] is None for r in rows),"active":True}
+    # Mantém os documentos anteriores, apenas desativa a lista anterior deste setor.
+    await db.purchase_lists.update_many({"sector":sector,"active":True},{"$set":{"active":False}})
     await db.purchase_lists.insert_one(doc)
-    # Contagens históricas antigas não são reutilizáveis; os números ativos ficam em purchase_drafts.
-    await db.purchase_counts.delete_many({})
-    # Guardar somente a atual e a imediatamente anterior, por setor.
-    all_lists=await db.purchase_lists.find({"sector":sector},{"id":1,"_id":0}).sort([("created_at",-1),("_id",-1)]).to_list(10000)
-    old_ids=[x["id"] for x in all_lists[2:]]
-    if old_ids: await db.purchase_lists.delete_many({"id":{"$in":old_ids}})
     await audit("compras_lista_gerada",user,"purchase_list",doc["id"],{"sector":sector,"mode":mode})
+    doc.pop("_id",None)
     return doc
+
+@api.post("/compras/gerar-lista")
+async def purchase_generate_current(sector: str = "bar", mode: str = "total", user: dict = Depends(get_current_user)):
+    if not purchase_admin(user): raise HTTPException(403, "Somente administrador gera listas")
+    purchase_check_sector(user, sector)
+    if mode not in ("total", "reduzida"): raise HTTPException(400, "Tipo de compra inválido")
+    draft = await db.purchase_drafts.find_one({"sector":sector}, {"_id":0}) or {}
+    finished = draft.get("finished")
+    if not finished: raise HTTPException(400,"Finalize a contagem e selecione o contador antes de gerar a lista")
+    return await purchase_save_latest_list(sector, finished, user, mode)
 
 @api.post("/compras/contagens/{cid}/listas")
 async def purchase_generate_list(cid: str, sector: str = "bar", mode: str = "total", user: dict = Depends(get_current_user)):
