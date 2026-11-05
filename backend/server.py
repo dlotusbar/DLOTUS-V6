@@ -186,6 +186,36 @@ async def purchase_catalog_seed():
                                   "initial_count_raw": stated}}, upsert=True)
 
 
+
+# Cadastro inicial do Estoque Rosh. Inserção idempotente: nunca altera itens já existentes.
+ROSH_INITIAL_CATALOG = {
+    "Ziggy": [("Banana",8),("Tuty",10),("Melancia",10),("Cereja",5),
+              ("Duas Goiabas",4),("7 Bello",0),("Uva",3),("Limão",9),
+              ("Morango e Laranja",2),("Frutas Amarelas",6),
+              ("Choco Menta",0),("Coffee Cream",0),("Pink Lemonade",8)],
+    "Zomo": [("Strong Mint",0)],
+    "Adalya": [("Love 66",8)],
+    "Materiais Rosh": [("Papel alumínio - caixa aberta",1),
+                       ("Papel alumínio - caixa fechada",0),
+                       ("Carvão",5)],
+}
+
+async def rosh_initial_catalog_seed():
+    for category, items in ROSH_INITIAL_CATALOG.items():
+        for name, quantity in items:
+            unit = "kg" if name == "Carvão" else ("caixa" if name.startswith("Papel alumínio") else "unidade")
+            await db.purchase_products.update_one(
+                {"name": name, "category": category, "sector": "rosh"},
+                {"$setOnInsert": {
+                    "id": new_id(), "name": name, "category": category,
+                    "sector": "rosh", "unit": unit, "units_per_package": None,
+                    "target": None, "reduced_target": None, "cost": None,
+                    "notes": "Estoque inicial informado em 05/11/2026",
+                    "created_at": now_iso(), "created_by": "importação inicial Rosh",
+                    "initial_count_reference": float(quantity),
+                    "initial_count_raw": str(quantity)
+                }}, upsert=True)
+
 def purchase_admin(user):
     return user.get("role", "").lower() == "administrador"
 
@@ -2292,6 +2322,7 @@ async def seed():
 async def on_startup():
     await db.users.create_index("username", unique=True)
     await purchase_catalog_seed()
+    await rosh_initial_catalog_seed()
     await db.orders.create_index("status")
     await db.orders.create_index("closed_at")
     await db.products.create_index("category_id")
