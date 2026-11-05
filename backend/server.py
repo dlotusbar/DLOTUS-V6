@@ -202,6 +202,68 @@ def purchase_check_sector(user, sector):
 def purchase_sector(product):
     return product.get("sector") or "bar"  # compatibilidade com produtos V6 existentes
 
+class PurchaseCounterIn(BaseModel):
+    name: str
+
+@api.get("/compras/contadores")
+async def purchase_counters(user: dict = Depends(get_current_user)):
+    if not purchase_sectors(user): raise HTTPException(403, "Sem permissão")
+    return await db.purchase_counters.find({}, {"_id": 0}).sort("name", 1).to_list(500)
+
+@api.post("/compras/contadores")
+async def purchase_counter_add(data: PurchaseCounterIn, user: dict = Depends(get_current_user)):
+    if not purchase_admin(user): raise HTTPException(403, "Somente administrador")
+    name = data.name.strip()
+    if not name or len(name)>80: raise HTTPException(400, "Nome inválido")
+    if await db.purchase_counters.find_one({"name": {"$regex": "^"+re.escape(name)+"$", "$options":"i"}}):
+        raise HTTPException(409, "Contador já cadastrado")
+    doc={"id":new_id(),"name":name,"created_at":now_iso()}
+    await db.purchase_counters.insert_one(doc)
+    await audit("compras_contador_criado",user,"purchase_counter",doc["id"],{"name":name})
+    doc.pop("_id",None)
+    return doc
+
+@api.put("/compras/contadores/{cid}")
+async def purchase_counter_edit(cid: str, data: PurchaseCounterIn, user: dict = Depends(get_current_user)):
+    if not purchase_admin(user): raise HTTPException(403, "Somente administrador")
+    name=data.name.strip()
+    if not name or len(name)>80: raise HTTPException(400, "Nome inválido")
+    result=await db.purchase_counters.update_one({"id":cid},{"$set":{"name":name}})
+    if not result.matched_count: raise HTTPException(404, "Contador não encontrado")
+    await audit("compras_contador_editado",user,"purchase_counter",cid,{"name":name})
+    return {"ok":True}
+
+@api.delete("/compras/contadores/{cid}")
+async def purchase_counter_remove(cid: str, user: dict = Depends(get_current_user)):
+    if not purchase_admin(user): raise HTTPException(403, "Somente administrador")
+    await db.purchase_counters.delete_one({"id":cid})
+    await audit("compras_contador_excluido",user,"purchase_counter",cid,{})
+    return {"ok":True}
+
+class PurchaseFinishIn(BaseModel):
+    counter_id: str
+    quantities: Dict[str,float] = {}
+    packages: Dict[str,float] = {}
+
+@api.post("/compras/finalizar/{sector}")
+async def purchase_finish(sector: str, data: PurchaseFinishIn, user: dict = Depends(get_current_user)):
+    purchase_check_sector(user,sector)
+    counter=await db.purchase_counters.find_one({"id":data.counter_id},{"_id":0})
+    if not counter: raise HTTPException(400,"Selecione um contador cadastrado")
+    products=await db.purchase_products.find({"archived":{"$ne":True}},{"_id":0}).to_list(5000)
+    active=[p for p in products if purchase_sector(p)==sector]
+    if not active: raise HTTPException(400,"Nenhum produto cadastrado no setor")
+    ids={p["id"] for p in active}
+    values={**data.quantities,**data.packages}
+    if any(k not in ids or not math.isfinite(v) or v<0 or int(v)!=v for k,v in values.items()):
+        raise HTTPException(400,"Quantidades inválidas")
+    missing=[p["name"] for p in active if p["id"] not in data.quantities or (int(p.get("units_per_package") or 1)>1 and p["id"] not in data.packages)]
+    if missing: raise HTTPException(400,"Contagem incompleta. Faltam: "+", ".join(missing[:30])+("..." if len(missing)>30 else ""))
+    finished={"counter_id":counter["id"],"counter_name":counter["name"],"finished_at":now_iso(),"quantities":data.quantities,"packages":data.packages}
+    await db.purchase_drafts.update_one({"sector":sector},{"$set":{"quantities":data.quantities,"packages":data.packages,"finished":finished,"updated_at":now_iso(),"finished":None}},upsert=True)
+    await audit("compras_contagem_finalizada",user,"purchase_draft",sector,{"counter":counter["name"],"items":len(active)})
+    return {"ok":True,"finished":finished}
+
 @api.get("/compras/produtos")
 async def purchase_products(user: dict = Depends(get_current_user)):
     allowed = purchase_sectors(user)
@@ -255,6 +317,36 @@ async def purchase_delete(pid: str, user: dict = Depends(get_current_user)):
     await audit("compras_produto_excluido", user, "purchase_product", pid, previous)
     return {"ok": True}
 
+@api.get("/compras/rascunho/{sector}")
+async def purchase_draft_get(sector: str, user: dict = Depends(get_current_user)):
+    purchase_check_sector(user, sector)
+    doc = await db.purchase_drafts.find_one({"sector": sector}, {"_id": 0})
+    return doc or {"sector": sector, "quantities": {}, "packages": {}}
+
+class PurchaseDraftIn(BaseModel):
+    quantities: Dict[str, float] = {}
+    packages: Dict[str, float] = {}
+
+@api.put("/compras/rascunho/{sector}")
+async def purchase_draft_put(sector: str, data: PurchaseDraftIn, user: dict = Depends(get_current_user)):
+    purchase_check_sector(user, sector)
+    products = await db.purchase_products.find({"archived": {"$ne": True}}, {"_id": 0}).to_list(5000)
+    allowed = {p["id"] for p in products if purchase_sector(p) == sector}
+    if any(k not in allowed or not math.isfinite(v) or v < 0 for k,v in {**data.quantities, **data.packages}.items()):
+        raise HTTPException(400, "Contagem inválida")
+    old = await db.purchase_drafts.find_one({"sector":sector},{"_id":0}) or {}
+    completed=old.get("finished")
+    if completed and (completed.get("quantities") != data.quantities or completed.get("packages") != data.packages):
+        completed=None
+    await db.purchase_drafts.update_one({"sector":sector}, {"$set":{"quantities":data.quantities,"packages":data.packages,"updated_at":now_iso(),"updated_by":user.get("username"),"finished":completed}}, upsert=True)
+    return {"ok":True}
+
+@api.delete("/compras/rascunho/{sector}")
+async def purchase_draft_clear(sector: str, user: dict = Depends(get_current_user)):
+    purchase_check_sector(user, sector)
+    await db.purchase_drafts.update_one({"sector":sector},{"$set":{"quantities":{},"packages":{},"updated_at":now_iso()}},upsert=True)
+    return {"ok":True}
+
 @api.post("/compras/contagens")
 async def purchase_count(data: PurchaseCountIn, user: dict = Depends(get_current_user)):
     allowed = purchase_sectors(user)
@@ -294,11 +386,53 @@ async def purchase_history_detail(cid: str, user: dict = Depends(get_current_use
     if not doc["rows"]: raise HTTPException(403, "Sem acesso à contagem")
     return doc
 
+@api.post("/compras/gerar-lista")
+async def purchase_generate_current(sector: str = "bar", mode: str = "total", user: dict = Depends(get_current_user)):
+    if not purchase_admin(user): raise HTTPException(403, "Somente administrador gera listas")
+    purchase_check_sector(user, sector)
+    if mode not in ("total", "reduzida"): raise HTTPException(400, "Tipo de compra inválido")
+    draft = await db.purchase_drafts.find_one({"sector":sector}, {"_id":0}) or {}
+    finished = draft.get("finished")
+    if not finished: raise HTTPException(400,"Finalize a contagem e selecione o contador antes de gerar a lista")
+    quantities = finished.get("quantities", {})
+    packages = finished.get("packages", {})
+    products = await db.purchase_products.find({"archived":{"$ne":True}}, {"_id":0}).to_list(5000)
+    active=[p for p in products if purchase_sector(p)==sector]
+    if any(p["id"] not in quantities or (int(p.get("units_per_package") or 1)>1 and p["id"] not in packages) for p in active):
+        raise HTTPException(400,"Contagem finalizada desatualizada. Finalize novamente")
+    rows=[]
+    for p in products:
+        if purchase_sector(p)!=sector: continue
+        pid=p["id"]
+        if pid not in quantities and pid not in packages: continue
+        pack=max(1,int(p.get("units_per_package") or 1))
+        quantity=float(quantities.get(pid,0))+float(packages.get(pid,0))*pack
+        target=p.get("target") if mode=="total" else p.get("reduced_target")
+        if target is None: continue
+        missing=max(0,float(target)-quantity)
+        if missing<=0: continue
+        # Produtos com embalagem cadastrada são comprados em fardos fechados.
+        buy_packages=math.ceil((missing-1e-9)/pack) if pack>1 else None
+        buy_units=buy_packages*pack if buy_packages is not None else missing
+        cost=p.get("cost")
+        rows.append({"product_id":pid,"name":p["name"],"category":p["category"],"sector":sector,"unit":p.get("unit","unidade"),"quantity":quantity,"target":target,"missing":missing,"purchase_quantity":buy_units,"purchase_packages":buy_packages,"units_per_package":pack,"cost":cost,"subtotal":round(buy_units*cost,2) if cost is not None else None})
+    doc={"id":new_id(),"sector":sector,"mode":mode,"created_at":now_iso(),"created_by":user.get("username"),"created_by_name":user.get("name"),"counter_name":finished["counter_name"],"finished_at":finished["finished_at"],"rows":rows,"total_known":round(sum(r["subtotal"] for r in rows if r["subtotal"] is not None),2),"has_unpriced":any(r["subtotal"] is None for r in rows)}
+    await db.purchase_lists.insert_one(doc)
+    # Contagens históricas antigas não são reutilizáveis; os números ativos ficam em purchase_drafts.
+    await db.purchase_counts.delete_many({})
+    # Guardar somente a atual e a imediatamente anterior, por setor.
+    all_lists=await db.purchase_lists.find({"sector":sector},{"id":1,"_id":0}).sort([("created_at",-1),("_id",-1)]).to_list(10000)
+    old_ids=[x["id"] for x in all_lists[2:]]
+    if old_ids: await db.purchase_lists.delete_many({"id":{"$in":old_ids}})
+    await audit("compras_lista_gerada",user,"purchase_list",doc["id"],{"sector":sector,"mode":mode})
+    return doc
+
 @api.post("/compras/contagens/{cid}/listas")
 async def purchase_generate_list(cid: str, sector: str = "bar", mode: str = "total", user: dict = Depends(get_current_user)):
     if not purchase_admin(user): raise HTTPException(403, "Somente administrador gera listas")
     purchase_check_sector(user, sector)
     if mode not in ("total", "reduzida"): raise HTTPException(400, "Tipo de compra inválido")
+    raise HTTPException(410, "Use a contagem atual para gerar a lista")
     count = await db.purchase_counts.find_one({"id": cid}, {"_id": 0})
     if not count:
         raise HTTPException(404, "Contagem não encontrada")
