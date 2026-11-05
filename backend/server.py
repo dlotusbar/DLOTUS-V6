@@ -79,7 +79,7 @@ ALL_PERMISSIONS = [
     "mesas", "venda", "venda_rapida", "produtos", "estoque", "caixa",
     "fechamento", "dashboard", "relatorios", "funcionarios", "bar", "rosh",
     "impressoras", "auditoria", "portaria", "portaria_caixa", "portaria_config",
-    "configuracoes", "reservas", "suposto_ganho", "pagas_funcionarios", "vendas_prazo", "agenda", "compras", "estoque_bar", "estoque_rosh",
+    "configuracoes", "reservas", "suposto_ganho", "pagas_funcionarios", "vendas_prazo", "agenda", "compras", "estoque_bar", "estoque_rosh", "estoque_cozinha", "estoque_doce",
 ]
 
 
@@ -216,14 +216,27 @@ async def rosh_initial_catalog_seed():
                     "initial_count_raw": str(quantity)
                 }}, upsert=True)
 
+async def purchase_migrate_kitchen():
+    """Move somente itens da categoria Cozinha ainda no Bar; seguro repetir.
+    Mantém IDs, configurações e registros históricos intactos.
+    """
+    result = await db.purchase_products.update_many(
+        {"category": {"$regex": r"^\s*cozinha\s*$", "$options": "i"},
+         "$or": [{"sector": "bar"}, {"sector": {"$exists": False}}, {"sector": None}]},
+        {"$set": {"sector": "cozinha"}}
+    )
+    if result.modified_count:
+        logger.info("Compras: %s produtos transferidos para Estoque Cozinha", result.modified_count)
+
+
 def purchase_admin(user):
     return user.get("role", "").lower() == "administrador"
 
 def purchase_sectors(user):
     if purchase_admin(user):
-        return ["bar", "rosh"]
+        return ["bar", "rosh", "cozinha", "doce"]
     perms = user.get("permissions") or []
-    return [sector for sector in ("bar", "rosh") if "estoque_" + sector in perms]
+    return [sector for sector in ("bar", "rosh", "cozinha", "doce") if "estoque_" + sector in perms]
 
 def purchase_check_sector(user, sector):
     if sector not in purchase_sectors(user):
@@ -320,7 +333,7 @@ async def purchase_products(user: dict = Depends(get_current_user)):
 
 @api.post("/compras/produtos")
 async def purchase_create(data: PurchaseProductIn, user: dict = Depends(get_current_user)):
-    if data.sector not in ("bar", "rosh"): raise HTTPException(400, "Setor inválido")
+    if data.sector not in ("bar", "rosh", "cozinha", "doce"): raise HTTPException(400, "Setor inválido")
     purchase_check_sector(user, data.sector)
     if not data.name.strip() or not data.category.strip():
         raise HTTPException(400, "Informe nome e categoria")
@@ -347,7 +360,7 @@ async def purchase_update(pid: str, data: PurchaseProductIn, user: dict = Depend
         raise HTTPException(400, "Informe nome e categoria")
     if data.target is not None and data.target < 0 or data.cost is not None and data.cost < 0 or data.units_per_package is not None and data.units_per_package < 1:
         raise HTTPException(400, "Quantidade e preço devem ser válidos")
-    if data.sector not in ("bar", "rosh") or (data.reduced_target is not None and data.reduced_target < 0): raise HTTPException(400, "Setor ou meta reduzida inválidos")
+    if data.sector not in ("bar", "rosh", "cozinha", "doce") or (data.reduced_target is not None and data.reduced_target < 0): raise HTTPException(400, "Setor ou meta reduzida inválidos")
     changes = {**data.model_dump(), "name": data.name.strip(), "category": data.category.strip(), "updated_at": now_iso(), "updated_by": user.get("username")}
     await db.purchase_products.update_one({"id": pid}, {"$set": changes})
     await audit("compras_produto_editado", user, "purchase_product", pid, {"before": previous, "after": changes})
@@ -2344,6 +2357,7 @@ async def on_startup():
     await db.users.create_index("username", unique=True)
     await purchase_catalog_seed()
     await rosh_initial_catalog_seed()
+    await purchase_migrate_kitchen()
     await db.orders.create_index("status")
     await db.orders.create_index("closed_at")
     await db.products.create_index("category_id")
