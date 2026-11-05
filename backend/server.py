@@ -234,20 +234,27 @@ def purchase_sector(product):
 
 class PurchaseCounterIn(BaseModel):
     name: str
+    sector: str = "bar"
+
+# Contadores antigos pertencem ao Bar; migração idempotente.
+async def purchase_migrate_counters():
+    await db.purchase_counters.update_many({"sector":{"$exists":False}},{"$set":{"sector":"bar"}})
 
 @api.get("/compras/contadores")
-async def purchase_counters(user: dict = Depends(get_current_user)):
-    if not purchase_sectors(user): raise HTTPException(403, "Sem permissão")
-    return await db.purchase_counters.find({}, {"_id": 0}).sort("name", 1).to_list(500)
+async def purchase_counters(sector: str = "bar", user: dict = Depends(get_current_user)):
+    purchase_check_sector(user, sector)
+    await purchase_migrate_counters()
+    return await db.purchase_counters.find({"sector": sector}, {"_id": 0}).sort("name", 1).to_list(500)
 
 @api.post("/compras/contadores")
 async def purchase_counter_add(data: PurchaseCounterIn, user: dict = Depends(get_current_user)):
     if not purchase_admin(user): raise HTTPException(403, "Somente administrador")
+    purchase_check_sector(user, data.sector)
     name = data.name.strip()
     if not name or len(name)>80: raise HTTPException(400, "Nome inválido")
-    if await db.purchase_counters.find_one({"name": {"$regex": "^"+re.escape(name)+"$", "$options":"i"}}):
+    if await db.purchase_counters.find_one({"sector":data.sector,"name": {"$regex": "^"+re.escape(name)+"$", "$options":"i"}}):
         raise HTTPException(409, "Contador já cadastrado")
-    doc={"id":new_id(),"name":name,"created_at":now_iso()}
+    doc={"id":new_id(),"name":name,"sector":data.sector,"created_at":now_iso()}
     await db.purchase_counters.insert_one(doc)
     await audit("compras_contador_criado",user,"purchase_counter",doc["id"],{"name":name})
     doc.pop("_id",None)
@@ -256,17 +263,19 @@ async def purchase_counter_add(data: PurchaseCounterIn, user: dict = Depends(get
 @api.put("/compras/contadores/{cid}")
 async def purchase_counter_edit(cid: str, data: PurchaseCounterIn, user: dict = Depends(get_current_user)):
     if not purchase_admin(user): raise HTTPException(403, "Somente administrador")
+    purchase_check_sector(user,data.sector)
     name=data.name.strip()
     if not name or len(name)>80: raise HTTPException(400, "Nome inválido")
-    result=await db.purchase_counters.update_one({"id":cid},{"$set":{"name":name}})
+    result=await db.purchase_counters.update_one({"id":cid,"sector":data.sector},{"$set":{"name":name}})
     if not result.matched_count: raise HTTPException(404, "Contador não encontrado")
     await audit("compras_contador_editado",user,"purchase_counter",cid,{"name":name})
     return {"ok":True}
 
 @api.delete("/compras/contadores/{cid}")
-async def purchase_counter_remove(cid: str, user: dict = Depends(get_current_user)):
+async def purchase_counter_remove(cid: str, sector: str = "bar", user: dict = Depends(get_current_user)):
     if not purchase_admin(user): raise HTTPException(403, "Somente administrador")
-    await db.purchase_counters.delete_one({"id":cid})
+    purchase_check_sector(user,sector)
+    await db.purchase_counters.delete_one({"id":cid,"sector":sector})
     await audit("compras_contador_excluido",user,"purchase_counter",cid,{})
     return {"ok":True}
 
@@ -278,7 +287,7 @@ class PurchaseFinishIn(BaseModel):
 @api.post("/compras/finalizar/{sector}")
 async def purchase_finish(sector: str, data: PurchaseFinishIn, user: dict = Depends(get_current_user)):
     purchase_check_sector(user,sector)
-    counter=await db.purchase_counters.find_one({"id":data.counter_id},{"_id":0})
+    counter=await db.purchase_counters.find_one({"id":data.counter_id,"sector":sector},{"_id":0})
     if not counter: raise HTTPException(400,"Selecione um contador cadastrado")
     products=await db.purchase_products.find({"archived":{"$ne":True}},{"_id":0}).to_list(5000)
     active=[p for p in products if purchase_sector(p)==sector]
@@ -501,13 +510,13 @@ async def purchase_generate_list(cid: str, sector: str = "bar", mode: str = "tot
 
 @api.get("/compras/listas")
 async def purchase_lists(user: dict = Depends(get_current_user)):
-    if not purchase_admin(user): raise HTTPException(403, "Somente administrador visualiza listas")
-    return await db.purchase_lists.find({}, {"_id": 0, "rows": 0}).sort("created_at", -1).limit(100).to_list(100)
+    sectors=purchase_sectors(user)
+    if not sectors: raise HTTPException(403,"Sem permissão")
+    return await db.purchase_lists.find({"sector":{"$in":sectors}}, {"_id": 0, "rows": 0}).sort("created_at", -1).limit(100).to_list(100)
 
 @api.get("/compras/listas/{lid}")
 async def purchase_list_detail(lid: str, user: dict = Depends(get_current_user)):
-    if not purchase_admin(user): raise HTTPException(403, "Somente administrador visualiza listas")
-    doc = await db.purchase_lists.find_one({"id": lid}, {"_id": 0})
+    doc = await db.purchase_lists.find_one({"id": lid,"sector":{"$in":purchase_sectors(user)}}, {"_id": 0})
     if not doc:
         raise HTTPException(404, "Lista não encontrada")
     return doc
