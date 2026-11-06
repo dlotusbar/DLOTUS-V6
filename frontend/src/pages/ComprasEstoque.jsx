@@ -84,25 +84,23 @@ export default function ComprasEstoque(){
       `${date} - ${doc.mode==='reduzida'?'Compra reduzida':'Compra total'}`,
       '━━━━━━━━━━━━━━━━━━',
     ];
+    let grandTotal=0;
     rows.forEach((r,i)=>{
-      // A lista exibe SOMENTE a quantidade a comprar, nunca a quantidade em estoque.
-      const qty=Number(r.purchase_quantity??(r.purchase_packages!=null
+      // Apenas quantidade A COMPRAR, nunca quantidade existente no estoque.
+      const qtyRaw=Number(r.purchase_quantity??(r.purchase_packages!=null
         ?Number(r.purchase_packages)*Number(r.units_per_package||1)
         :r.missing??0));
-      const unitCost=r.cost==null?'A definir':money(r.cost);
-      const subtotal=r.subtotal==null
-        ?(r.cost==null?'A definir':money(qty*Number(r.cost)))
-        :money(r.subtotal);
+      const qty=Number.isFinite(qtyRaw)?qtyRaw:0;
+      const priceRaw=Number(r.cost??0);
+      const price=Number.isFinite(priceRaw)?priceRaw:0;
+      const subtotal=Math.round(qty*price*100)/100;
+      grandTotal+=subtotal;
       lines.push(`${i+1}. ${r.name}`);
-      lines.push(`Comprar: ${qty.toLocaleString('pt-BR')} ${r.unit||'unidade(s)'}`);
-      lines.push(`Valor unitário: ${unitCost}`);
-      lines.push(`Subtotal: ${subtotal}`);
+      lines.push(`Comprar: ${qty.toLocaleString('pt-BR')} × ${money(price)} = ${money(subtotal)}`);
       lines.push('──────────────────');
     });
     if(!rows.length)lines.push('Nenhuma reposição necessária.');
-    lines.push(`VALOR TOTAL: ${money(doc.total_known??rows.reduce((sum,r)=>sum+Number(r.subtotal||0),0))}`);
-    if(rows.some(r=>r.cost==null&&r.subtotal==null))
-      lines.push('* Produtos com valor a definir não entram no total.');
+    lines.push(`TOTAL GERAL: ${money(Math.round(grandTotal*100)/100)}`);
     const message=lines.join('\n');
     if(navigator.share){
       navigator.share({title:'D’Lotus - Lista de Compras',text:message})
