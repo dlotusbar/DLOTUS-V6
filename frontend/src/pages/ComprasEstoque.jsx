@@ -90,10 +90,12 @@ export default function ComprasEstoque(){
       const category=String(r.category||'Outros').trim()||'Outros';
       (categories[category]??=[]).push(r);
     });
+    // Bloco monoespaçado no WhatsApp: colunas alinhadas e uma linha por produto.
+    // Valores sem cadastro aparecem como 0,00.
+    const numberText=v=>Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
     Object.entries(categories).forEach(([category,items])=>{
       lines.push(`*${category.toUpperCase()}*`);
-      items.forEach(r=>{
-        // Somente quantidade A COMPRAR; nunca o estoque contado.
+      const entries=items.map(r=>{
         const qtyRaw=Number(r.purchase_quantity??(r.purchase_packages!=null
           ?Number(r.purchase_packages)*Number(r.units_per_package||1)
           :r.missing??0));
@@ -102,8 +104,15 @@ export default function ComprasEstoque(){
         const price=Number.isFinite(priceRaw)?priceRaw:0;
         const subtotal=Math.round(qty*price*100)/100;
         grandTotal+=subtotal;
-        lines.push(`${qty.toLocaleString('pt-BR')} ${r.name} — ${money(price)} = ${money(subtotal)}`);
+        return {product:`${qty.toLocaleString('pt-BR')} ${r.name}`,price:numberText(price),subtotal:numberText(subtotal)};
       });
+      const nameWidth=Math.max(7,...entries.map(e=>e.product.length));
+      const unitWidth=Math.max(5,...entries.map(e=>e.price.length));
+      const totalWidth=Math.max(5,...entries.map(e=>e.subtotal.length));
+      lines.push('```');
+      lines.push(`${'Produto'.padEnd(nameWidth)}  ${'Unit.'.padStart(unitWidth)}  ${'Total'.padStart(totalWidth)}`);
+      entries.forEach(e=>lines.push(`${e.product.padEnd(nameWidth)}  ${e.price.padStart(unitWidth)}  ${e.subtotal.padStart(totalWidth)}`));
+      lines.push('```');
       lines.push('');
     });
     if(!rows.length)lines.push('Nenhuma reposição necessária.');
