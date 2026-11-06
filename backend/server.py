@@ -200,58 +200,6 @@ ROSH_INITIAL_CATALOG = {
                        ("Carvão",5)],
 }
 
-
-# Catálogo inicial do Estoque Doce: cadastro automático e idempotente no servidor.
-DOCE_INITIAL_CATALOG = [('Fofura cebola', 'Fofura'),
- ('Fofura presunto', 'Fofura'),
- ('Fofura churrasco', 'Fofura'),
- ('Chiclete Push Menta', 'Chicletes'),
- ('Chiclete Push Morango', 'Chicletes'),
- ('Chiclete Push 7 belo', 'Chicletes'),
- ('Chiclete Fregeels Tutti Frutti', 'Chicletes'),
- ('Chiclete Fregeels Azul', 'Chicletes'),
- ('Chiclete Fregeels Melancia', 'Chicletes'),
- ('Bala fregeels Azul', 'Balas'),
- ('Bala fregeels Preta', 'Balas'),
- ('Bala fregeels vermelha', 'Balas'),
- ('Pirulito', 'Pirulitos'),
- ('Batata Fritop Cebola de salsa', 'Salgadinhos'),
- ('Batata Fritop Tradicional', 'Salgadinhos'),
- ('Fandangos Vermelho', 'Salgadinhos'),
- ('Fandangos Queijo', 'Salgadinhos'),
- ('Chettos Azul', 'Salgadinhos'),
- ('Chettos Roxo', 'Salgadinhos'),
- ('Chettos Laranja', 'Salgadinhos'),
- ('Doritos', 'Salgadinhos'),
- ('Rufles tradicional', 'Salgadinhos'),
- ('Rufles cebola e salsa', 'Salgadinhos'),
- ('Ebicen camarão', 'Salgadinhos'),
- ('Torcida Queijo', 'Salgadinhos'),
- ('Torcida cebola', 'Salgadinhos'),
- ('Torcida Bacon', 'Salgadinhos'),
- ('Torcida costelinha', 'Salgadinhos'),
- ('Torcida churrasco', 'Salgadinhos'),
- ('Torcida camarão', 'Salgadinhos'),
- ('Torcida pimenta', 'Salgadinhos'),
- ('Torcida pão de alho', 'Salgadinhos'),
- ('Bis', 'Doces'),
- ('Paçoca', 'Doces'),
- ('Pingo de leite', 'Doces')]
-
-async def doce_initial_catalog_seed():
-    for name, category in DOCE_INITIAL_CATALOG:
-        # Nunca sobrescreve contagem, preço, metas ou alterações existentes.
-        existing = await db.purchase_products.find_one({"sector": "doce", "name": {"$regex": "^" + re.escape(name) + "$", "$options": "i"}})
-        if existing:
-            continue
-        await db.purchase_products.update_one(
-            {"name": name, "category": category, "sector": "doce"},
-            {"$setOnInsert": {"id": new_id(), "name": name, "category": category,
-                              "sector": "doce", "unit": "unidade", "units_per_package": None,
-                              "target": None, "reduced_target": None, "cost": None,
-                              "notes": "Catálogo inicial Estoque Doce", "created_at": now_iso(),
-                              "created_by": "importação inicial Doce"}}, upsert=True)
-
 async def rosh_initial_catalog_seed():
     for category, items in ROSH_INITIAL_CATALOG.items():
         for name, quantity in items:
@@ -2396,7 +2344,6 @@ async def on_startup():
     await db.users.create_index("username", unique=True)
     await purchase_catalog_seed()
     await rosh_initial_catalog_seed()
-    await doce_initial_catalog_seed()
     await db.orders.create_index("status")
     await db.orders.create_index("closed_at")
     await db.products.create_index("category_id")
@@ -4084,7 +4031,43 @@ async def prazo_editar_cadastro(cid: str, data: PrazoCadastroUpdateIn, user: dic
 
 @api.get("/prazo/contas")
 async def prazo_listar(user: dict = Depends(get_current_user)):
-    return await db.prazo_contas.find({"arquivado": {"$ne": True}}, {"_id": 0}).sort("criado_em", -1).to_list(10000)
+    contas = await db.prazo_contas.find({"arquivado": {"$ne": True}}, {"_id": 0}).sort("criado_em", -1).to_list(10000)
+    # Apenas visualização: detalha os produtos das comandas antigas/novas sem alterar saldos no MongoDB.
+    for conta in contas:
+        exibicao = []
+        for lancamento in conta.get("lancamentos", []):
+            if not isinstance(lancamento, dict):
+                continue
+            itens = lancamento.get("itens")
+            if not isinstance(itens, list) or not itens:
+                exibicao.append(lancamento)
+                continue
+            validos = [i for i in itens if isinstance(i, dict) and i.get("status") != "cancelled"]
+            if not validos:
+                exibicao.append(lancamento)
+                continue
+            total_original = round(float(lancamento.get("total") or 0), 2)
+            subtotal_acumulado = 0.0
+            for idx, item in enumerate(validos):
+                try:
+                    qtd = max(1, float(item.get("quantidade") or 1))
+                except (ValueError, TypeError):
+                    qtd = 1
+                try:
+                    valor = round(float(item.get("total") or 0), 2)
+                except (ValueError, TypeError):
+                    valor = 0.0
+                # Mantém exatamente o total original, inclusive com descontos de comanda.
+                if idx == len(validos) - 1:
+                    valor = round(total_original - subtotal_acumulado, 2)
+                subtotal_acumulado = round(subtotal_acumulado + valor, 2)
+                exibicao.append({**lancamento,
+                    "id": str(lancamento.get("id", "")) + ":produto:" + str(idx),
+                    "descricao": item.get("produto") or item.get("product_name") or "Produto",
+                    "quantidade": qtd, "valor_unitario": round(valor / qtd, 2),
+                    "total": valor, "itens": None})
+        conta["lancamentos"] = exibicao
+    return contas
 
 @api.post("/prazo/contas")
 async def prazo_criar(data: PrazoContaIn, user: dict = Depends(get_current_user)):
