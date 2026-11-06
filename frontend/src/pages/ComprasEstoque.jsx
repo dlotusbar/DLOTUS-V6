@@ -71,78 +71,49 @@ export default function ComprasEstoque(){
   const [configDraft,setConfigDraft]=useState({});
   const saveTargets=async p=>{const values=configDraft[p.id]||{};const target=num(values.target??p.target),reduced_target=num(values.reduced_target??p.reduced_target);if([target,reduced_target].some(v=>v!==null&&(!Number.isFinite(v)||v<0)))return toast.error('Informe quantidades válidas');if(target!==null&&reduced_target!==null&&reduced_target>target)return toast.error('O estoque reduzido não pode superar o normal');setLoading(true);try{await api.put(`/compras/produtos/${p.id}`,{...p,target,reduced_target});setConfigDraft(prev=>{const next={...prev};delete next[p.id];return next});toast.success('Metas de estoque salvas');await load()}catch(e){error(e)}finally{setLoading(false)}};
   const openPrint=doc=>{const w=window.open('','_blank');if(!w)return toast.error('Permita janelas pop-up para imprimir na térmica');w.document.write(buildHtml(doc));w.document.close();w.focus();setTimeout(()=>w.print(),350)};
-  // Prepara a imagem antes do toque para preservar a ativação exigida pelo Android.
-  const [shareFiles,setShareFiles]=useState({});
-  const [sharePreparing,setSharePreparing]=useState(false);
-  useEffect(()=>{
-    if(!modal||!latest){setShareFiles({});return}
-    let cancelled=false;
-    setSharePreparing(true);setShareFiles({});
-    Promise.all([false,true].map(async withPrices=>{
-      const file=await makeShareFile(latest,withPrices);
-      return [withPrices?'prices':'plain',file];
-    })).then(entries=>{if(!cancelled)setShareFiles(Object.fromEntries(entries))})
-      .catch(e=>{if(!cancelled)toast.error(`Erro ao preparar imagem: ${e.message||e}`)})
-      .finally(()=>{if(!cancelled)setSharePreparing(false)});
-    return()=>{cancelled=true};
-  },[modal,latest]);
-  // Imagem vertical no mesmo estilo da prévia do PDV, sem colunas e sem comprimir texto.
-  const makeShareFile=async(doc,withPrices)=>{
-    const rows=doc.rows||[];
-    const W=800, margin=44, rowH=withPrices?182:150;
-    const headerH=255, footerH=withPrices?125:55;
-    const H=Math.max(570,headerH+rows.length*rowH+footerH);
-    if(H>16000)throw new Error('Lista longa demais para uma imagem única. Para manter a leitura, divida a lista ou envie como documento.');
-    const canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;
-    const ctx=canvas.getContext('2d');if(!ctx)throw new Error('Canvas indisponível');
-    ctx.fillStyle='#101d30';ctx.fillRect(0,0,W,H);
-    ctx.fillStyle='#fcd46d';ctx.font='bold 43px Arial';
-    ctx.fillText('D’LOTUS · LISTA DE',margin,67);
-    ctx.fillText('COMPRAS',margin,117);
-    ctx.fillStyle='#ffffff';ctx.font='29px Arial';
-    const names={bar:'Bar',rosh:'Rosh',cozinha:'Cozinha',doce:'Doce'};
-    ctx.fillText(`Estoque ${names[doc.sector]||'D’Lotus'} · Contagem feita por`,margin,166,W-margin*2);
-    ctx.fillText(String(doc.counter_name||'não informado'),margin,201,W-margin*2);
-    const date=doc.created_at?new Date(doc.created_at).toLocaleString('pt-BR'):'';
-    ctx.font='25px Arial';ctx.fillStyle='#d5e0ef';
-    ctx.fillText(`${date} · ${doc.mode==='reduzida'?'Compra reduzida':'Compra total'}`,margin,235,W-margin*2);
-    const wrap=(value,maxWidth,font)=>{
-      ctx.font=font;const words=String(value||'').split(/\s+/),lines=[];let line='';
-      for(const word of words){const test=line?line+' '+word:word;if(ctx.measureText(test).width>maxWidth&&line){lines.push(line);line=word}else line=test}
-      if(line)lines.push(line);return lines;
-    };
-    rows.forEach((r,i)=>{
-      const y=headerH+i*rowH;
-      ctx.fillStyle='#ffffff';ctx.font='bold 33px Arial';
-      const lines=wrap(r.name,W-margin*2,'bold 33px Arial');
-      // Preserva o nome inteiro, até três linhas, em vez de esmagar horizontalmente.
-      lines.slice(0,3).forEach((line,j)=>ctx.fillText(line,margin,y+30+j*37,W-margin*2));
-      const nameBottom=y+30+Math.min(lines.length,3)*37;
-      const qty=r.purchase_packages!=null?`${r.purchase_packages} fardo(s) de ${r.units_per_package}`:`${r.purchase_quantity??r.missing} ${r.unit||'unidade'}`;
-      ctx.fillStyle='#f4d58a';ctx.font='30px Arial';
-      ctx.fillText(`Comprar: ${qty}`,margin,Math.min(y+rowH-50,nameBottom+12),W-margin*2);
-      if(withPrices){ctx.fillStyle='#e7edf6';ctx.font='25px Arial';ctx.fillText(`Estimado: ${r.subtotal==null?'A definir':money(r.subtotal)}`,margin,y+rowH-22,W-margin*2)}
-      ctx.strokeStyle='#34445a';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(margin,y+rowH-7);ctx.lineTo(W-margin,y+rowH-7);ctx.stroke();
-    });
-    if(!rows.length){ctx.fillStyle='#fff';ctx.font='32px Arial';ctx.fillText('Nenhuma reposição necessária.',margin,headerH+50)}
-    if(withPrices){ctx.fillStyle='#f4d58a';ctx.font='bold 33px Arial';ctx.fillText(`Total estimado: ${money(doc.total_known)}`,margin,H-65,W-margin*2)}
-    const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
-    if(!blob)throw new Error('Falha ao gerar PNG');
-    return new File([blob],`DLOTUS_Compras_${doc.sector||'estoque'}${withPrices?'_precos':''}.png`,{type:'image/png'});
-  };
+  // Compartilha texto formatado, sem canvas nem limite de altura da imagem.
+  // O Android abre a escolha de aplicativo e contato a partir do toque.
   const share=(doc,withPrices)=>{
-    const file=shareFiles[withPrices?'prices':'plain'];
-    if(!file)return toast.error('Imagem ainda sendo preparada. Aguarde um instante.');
-    // Chamada direta no clique, sem await anterior: necessária em PWAs Android.
-    if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
-      navigator.share({files:[file],title:'D’Lotus - Lista de Compras'})
-        .catch(e=>{if(e.name!=='AbortError'){toast.error('Não foi possível abrir o compartilhamento');console.error(e)}});
+    const sectorName={bar:'Bar',rosh:'Rosh',cozinha:'Cozinha',doce:'Doce'}[doc.sector]||'Estoque';
+    const date=doc.created_at?new Date(doc.created_at).toLocaleString('pt-BR'):'';
+    const rows=doc.rows||[];
+    const lines=[
+      'D’LOTUS - LISTA DE COMPRAS',
+      `Estoque: ${sectorName}`,
+      `Contagem: ${doc.counter_name||'não informado'}`,
+      `${date} - ${doc.mode==='reduzida'?'Compra reduzida':'Compra total'}`,
+      '━━━━━━━━━━━━━━━━━━',
+    ];
+    rows.forEach((r,i)=>{
+      const qty=r.purchase_packages!=null
+        ?`${r.purchase_packages} fardo(s) de ${r.units_per_package}`
+        :`${r.purchase_quantity??r.missing??0} ${r.unit||'unidade(s)'}`;
+      lines.push(`${i+1}. ${r.name}`,`   Comprar: ${qty}`);
+      if(withPrices)lines.push(`   Estimado: ${r.subtotal==null?'A definir':money(r.subtotal)}`);
+      lines.push('──────────────────');
+    });
+    if(!rows.length)lines.push('Nenhuma reposição necessária.');
+    if(withPrices)lines.push(`TOTAL ESTIMADO: ${money(doc.total_known)}`);
+    const message=lines.join('\n');
+    if(navigator.share){
+      navigator.share({title:'D’Lotus - Lista de Compras',text:message})
+        .catch(e=>{if(e.name!=='AbortError'){
+          console.error('Falha ao compartilhar texto',e);
+          toast.error('Falha ao abrir compartilhamento. Use a opção de copiar.');
+        }});
       return;
     }
-    const url=URL.createObjectURL(file),a=document.createElement('a');
-    a.href=url;a.download=file.name;document.body.appendChild(a);a.click();a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url),60000);
-    toast.info('Imagem salva. Anexe no WhatsApp para escolher o contato.');
+    if(navigator.clipboard?.writeText){
+      navigator.clipboard.writeText(message)
+        .then(()=>toast.success('Lista copiada. Cole na conversa do WhatsApp.'))
+        .catch(()=>toast.error('Não foi possível copiar a lista.'));
+      return;
+    }
+    const field=document.createElement('textarea');
+    field.value=message;field.style.position='fixed';field.style.opacity='0';
+    document.body.appendChild(field);field.select();
+    const copied=document.execCommand('copy');field.remove();
+    copied?toast.success('Lista copiada. Cole no WhatsApp.'):toast.error('Não foi possível copiar a lista.');
   };
   const sectorLabel=x=>({bar:'Bar',rosh:'Rosh',cozinha:'Cozinha',doce:'Doce'}[x]||x);
   const chooseSector=x=>{setSector(x);setCurrent(null);setEditing(null);setForm({...blank,sector:x})};
@@ -161,6 +132,6 @@ export default function ComprasEstoque(){
 {keypad&&<div className="fixed inset-0 z-[110] bg-black/70 flex items-center justify-center p-4"><div className="bg-[#12243c] rounded-xl p-5 w-full max-w-xs border border-amber-500/40"><h2 className="font-bold">{keypad.name} · {keypad.label}</h2><div className="text-center text-3xl p-4 my-3 bg-[#071328] rounded-lg">{keypad.value||'—'}</div><div className="grid grid-cols-3 gap-2">{['1','2','3','4','5','6','7','8','9','limpar','0','apagar'].map(d=><button key={d} onClick={()=>keyPress(d)} className="rounded-lg bg-sky-700 p-4 font-bold">{d==='limpar'?'Limpar':d==='apagar'?'⌫':d}</button>)}</div><div className="flex gap-2 mt-3"><button onClick={()=>setKeypad(null)} className="flex-1 rounded-lg bg-zinc-700 p-3">Fechar</button><button onClick={keyConfirm} className="flex-1 rounded-lg bg-emerald-600 p-3 font-bold">Confirmar</button></div></div></div>}
     {tab==='historico'&&<section className="rounded-xl bg-[#101a29] p-4"><h2 className="font-bold text-amber-300 mb-3">Contagens anteriores</h2>{history.filter(h=>h.sector ? h.sector===sector : (Array.isArray(h.rows) && h.rows.length ? h.rows.some(r=>visibleProducts.some(p=>String(p.id)===String(r.product_id))) : sector==='bar')).map(h=><button key={h.id} onClick={()=>toast.message('Histórico apenas para consulta; a contagem atual é salva automaticamente')} className="block w-full text-left p-4 border-b border-white/10 hover:bg-sky-900/20"><strong>{new Date(h.created_at).toLocaleString('pt-BR')}</strong><span className="block text-xs text-zinc-400">{h.created_by_name||h.created_by} · Somente consulta</span></button>)}{!history.length&&<p className="text-zinc-400">Nenhuma contagem salva ainda.</p>}</section>}
     {tab==='listas'&&<section className="rounded-xl bg-[#101a29] p-4"><h2 className="font-bold text-amber-300 mb-3">Listas de compras</h2><div className="flex flex-wrap gap-3 mb-4"><button onClick={()=>setMode('total')} className={`rounded-lg p-3 ${mode==='total'?'bg-sky-600':'bg-zinc-700'}`}>Compra Total</button><button onClick={()=>setMode('reduzida')} className={`rounded-lg p-3 ${mode==='reduzida'?'bg-sky-600':'bg-zinc-700'}`}>Compra Reduzida</button><button disabled={!admin||loading||!draftLoaded||!finished} onClick={generate} className="rounded-lg bg-amber-500 text-black font-bold p-3">Gerar novamente · {sectorLabel(sector)}</button></div>{lists.filter(l=>(l.sector||'bar')===sector).slice(0,2).map((l,i)=><button key={l.id} onClick={()=>showSaved('listas',l.id)} className="block w-full text-left p-4 border-b border-white/10 hover:bg-sky-900/20"><strong>{i===0?'Lista atual para impressão':'Lista anterior · somente consulta'}</strong><span className="block text-xs">Contagem feita por {l.counter_name||'não informado'} · {new Date(l.created_at).toLocaleString('pt-BR')} · {l.mode==='reduzida'?'Reduzida':'Total'} · {money(l.total_known)}</span></button>)}{!lists.filter(l=>(l.sector||'bar')===sector).length&&<p className="text-zinc-400">Nenhuma lista gerada ainda.</p>}</section>}
-    {modal&&latest&&<div className="fixed inset-0 z-[200] bg-black/80 flex items-center justify-center p-3" onClick={()=>{setModal(false);setShareOptions(false)}}><div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl border border-amber-500 bg-[#101d30] p-5 space-y-4" onClick={e=>e.stopPropagation()}><div className="flex justify-between gap-3"><div><h2 className="text-xl font-bold text-amber-300">D’LOTUS · LISTA DE COMPRAS</h2><p className="text-sm">Contagem feita por {latest.counter_name||'não informado'} · {new Date(latest.created_at).toLocaleString('pt-BR')} · {latest.mode==='reduzida'?'Compra reduzida':'Compra total'}</p></div><button onClick={()=>setModal(false)} className="px-3 py-1 bg-zinc-700 rounded-lg">Fechar ×</button></div>{latest.rows.map((r,i)=><div key={i} className="border-b border-white/10 pb-2"><strong>{r.name}</strong><p className="text-amber-200">Comprar: {r.purchase_packages!=null?`${r.purchase_packages} fardo(s) de ${r.units_per_package}`:`${r.purchase_quantity??r.missing} ${r.unit}`}</p><small>{money(r.subtotal)}</small></div>)}{!latest.rows.length&&<p>Nenhuma reposição necessária.</p>}<strong>Total estimado: {money(latest.total_known)}</strong><div className="flex flex-wrap gap-2"><button onClick={()=>openPrint(latest)} className="bg-sky-700 rounded-lg px-4 py-3">Imprimir (80 mm)</button><button onClick={()=>setShareOptions(v=>!v)} className="bg-green-700 rounded-lg px-4 py-3">Compartilhar no WhatsApp</button></div>{shareOptions&&<div className="flex flex-wrap gap-2 border-t border-white/10 pt-3"><button onClick={()=>share(latest,true)} disabled={sharePreparing||!shareFiles.prices} className="bg-[#254f7e] rounded-lg p-3">{sharePreparing?"Preparando imagem...":"Imagem com preços"}</button><button onClick={()=>share(latest,false)} disabled={sharePreparing||!shareFiles.plain} className="bg-[#254f7e] rounded-lg p-3">{sharePreparing?"Preparando imagem...":"Imagem sem preços"}</button></div>}</div></div>}
+    {modal&&latest&&<div className="fixed inset-0 z-[200] bg-black/80 flex items-center justify-center p-3" onClick={()=>{setModal(false);setShareOptions(false)}}><div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl border border-amber-500 bg-[#101d30] p-5 space-y-4" onClick={e=>e.stopPropagation()}><div className="flex justify-between gap-3"><div><h2 className="text-xl font-bold text-amber-300">D’LOTUS · LISTA DE COMPRAS</h2><p className="text-sm">Contagem feita por {latest.counter_name||'não informado'} · {new Date(latest.created_at).toLocaleString('pt-BR')} · {latest.mode==='reduzida'?'Compra reduzida':'Compra total'}</p></div><button onClick={()=>setModal(false)} className="px-3 py-1 bg-zinc-700 rounded-lg">Fechar ×</button></div>{latest.rows.map((r,i)=><div key={i} className="border-b border-white/10 pb-2"><strong>{r.name}</strong><p className="text-amber-200">Comprar: {r.purchase_packages!=null?`${r.purchase_packages} fardo(s) de ${r.units_per_package}`:`${r.purchase_quantity??r.missing} ${r.unit}`}</p><small>{money(r.subtotal)}</small></div>)}{!latest.rows.length&&<p>Nenhuma reposição necessária.</p>}<strong>Total estimado: {money(latest.total_known)}</strong><div className="flex flex-wrap gap-2"><button onClick={()=>openPrint(latest)} className="bg-sky-700 rounded-lg px-4 py-3">Imprimir (80 mm)</button><button onClick={()=>setShareOptions(v=>!v)} className="bg-green-700 rounded-lg px-4 py-3">Compartilhar lista no WhatsApp</button></div>{shareOptions&&<div className="flex flex-wrap gap-2 border-t border-white/10 pt-3"><button onClick={()=>share(latest,true)}  className="bg-[#254f7e] rounded-lg p-3">Texto com preços</button><button onClick={()=>share(latest,false)}  className="bg-[#254f7e] rounded-lg p-3">Texto sem preços</button></div>}</div></div>}
   </div>;
 }
