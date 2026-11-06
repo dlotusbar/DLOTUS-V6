@@ -73,7 +73,7 @@ export default function ComprasEstoque(){
   const openPrint=doc=>{const w=window.open('','_blank');if(!w)return toast.error('Permita janelas pop-up para imprimir na térmica');w.document.write(buildHtml(doc));w.document.close();w.focus();setTimeout(()=>w.print(),350)};
   // Compartilha texto formatado, sem canvas nem limite de altura da imagem.
   // O Android abre a escolha de aplicativo e contato a partir do toque.
-  const share=(doc,withPrices)=>{
+  const share=(doc)=>{
     const sectorName={bar:'Bar',rosh:'Rosh',cozinha:'Cozinha',doce:'Doce'}[doc.sector]||'Estoque';
     const date=doc.created_at?new Date(doc.created_at).toLocaleString('pt-BR'):'';
     const rows=doc.rows||[];
@@ -85,15 +85,24 @@ export default function ComprasEstoque(){
       '━━━━━━━━━━━━━━━━━━',
     ];
     rows.forEach((r,i)=>{
-      const qty=r.purchase_packages!=null
-        ?`${r.purchase_packages} fardo(s) de ${r.units_per_package}`
-        :`${r.purchase_quantity??r.missing??0} ${r.unit||'unidade(s)'}`;
-      lines.push(`${i+1}. ${r.name}`,`   Comprar: ${qty}`);
-      if(withPrices)lines.push(`   Estimado: ${r.subtotal==null?'A definir':money(r.subtotal)}`);
+      // A lista exibe SOMENTE a quantidade a comprar, nunca a quantidade em estoque.
+      const qty=Number(r.purchase_quantity??(r.purchase_packages!=null
+        ?Number(r.purchase_packages)*Number(r.units_per_package||1)
+        :r.missing??0));
+      const unitCost=r.cost==null?'A definir':money(r.cost);
+      const subtotal=r.subtotal==null
+        ?(r.cost==null?'A definir':money(qty*Number(r.cost)))
+        :money(r.subtotal);
+      lines.push(`${i+1}. ${r.name}`);
+      lines.push(`Comprar: ${qty.toLocaleString('pt-BR')} ${r.unit||'unidade(s)'}`);
+      lines.push(`Valor unitário: ${unitCost}`);
+      lines.push(`Subtotal: ${subtotal}`);
       lines.push('──────────────────');
     });
     if(!rows.length)lines.push('Nenhuma reposição necessária.');
-    if(withPrices)lines.push(`TOTAL ESTIMADO: ${money(doc.total_known)}`);
+    lines.push(`VALOR TOTAL: ${money(doc.total_known??rows.reduce((sum,r)=>sum+Number(r.subtotal||0),0))}`);
+    if(rows.some(r=>r.cost==null&&r.subtotal==null))
+      lines.push('* Produtos com valor a definir não entram no total.');
     const message=lines.join('\n');
     if(navigator.share){
       navigator.share({title:'D’Lotus - Lista de Compras',text:message})
@@ -132,6 +141,6 @@ export default function ComprasEstoque(){
 {keypad&&<div className="fixed inset-0 z-[110] bg-black/70 flex items-center justify-center p-4"><div className="bg-[#12243c] rounded-xl p-5 w-full max-w-xs border border-amber-500/40"><h2 className="font-bold">{keypad.name} · {keypad.label}</h2><div className="text-center text-3xl p-4 my-3 bg-[#071328] rounded-lg">{keypad.value||'—'}</div><div className="grid grid-cols-3 gap-2">{['1','2','3','4','5','6','7','8','9','limpar','0','apagar'].map(d=><button key={d} onClick={()=>keyPress(d)} className="rounded-lg bg-sky-700 p-4 font-bold">{d==='limpar'?'Limpar':d==='apagar'?'⌫':d}</button>)}</div><div className="flex gap-2 mt-3"><button onClick={()=>setKeypad(null)} className="flex-1 rounded-lg bg-zinc-700 p-3">Fechar</button><button onClick={keyConfirm} className="flex-1 rounded-lg bg-emerald-600 p-3 font-bold">Confirmar</button></div></div></div>}
     {tab==='historico'&&<section className="rounded-xl bg-[#101a29] p-4"><h2 className="font-bold text-amber-300 mb-3">Contagens anteriores</h2>{history.filter(h=>h.sector ? h.sector===sector : (Array.isArray(h.rows) && h.rows.length ? h.rows.some(r=>visibleProducts.some(p=>String(p.id)===String(r.product_id))) : sector==='bar')).map(h=><button key={h.id} onClick={()=>toast.message('Histórico apenas para consulta; a contagem atual é salva automaticamente')} className="block w-full text-left p-4 border-b border-white/10 hover:bg-sky-900/20"><strong>{new Date(h.created_at).toLocaleString('pt-BR')}</strong><span className="block text-xs text-zinc-400">{h.created_by_name||h.created_by} · Somente consulta</span></button>)}{!history.length&&<p className="text-zinc-400">Nenhuma contagem salva ainda.</p>}</section>}
     {tab==='listas'&&<section className="rounded-xl bg-[#101a29] p-4"><h2 className="font-bold text-amber-300 mb-3">Listas de compras</h2><div className="flex flex-wrap gap-3 mb-4"><button onClick={()=>setMode('total')} className={`rounded-lg p-3 ${mode==='total'?'bg-sky-600':'bg-zinc-700'}`}>Compra Total</button><button onClick={()=>setMode('reduzida')} className={`rounded-lg p-3 ${mode==='reduzida'?'bg-sky-600':'bg-zinc-700'}`}>Compra Reduzida</button><button disabled={!admin||loading||!draftLoaded||!finished} onClick={generate} className="rounded-lg bg-amber-500 text-black font-bold p-3">Gerar novamente · {sectorLabel(sector)}</button></div>{lists.filter(l=>(l.sector||'bar')===sector).slice(0,2).map((l,i)=><button key={l.id} onClick={()=>showSaved('listas',l.id)} className="block w-full text-left p-4 border-b border-white/10 hover:bg-sky-900/20"><strong>{i===0?'Lista atual para impressão':'Lista anterior · somente consulta'}</strong><span className="block text-xs">Contagem feita por {l.counter_name||'não informado'} · {new Date(l.created_at).toLocaleString('pt-BR')} · {l.mode==='reduzida'?'Reduzida':'Total'} · {money(l.total_known)}</span></button>)}{!lists.filter(l=>(l.sector||'bar')===sector).length&&<p className="text-zinc-400">Nenhuma lista gerada ainda.</p>}</section>}
-    {modal&&latest&&<div className="fixed inset-0 z-[200] bg-black/80 flex items-center justify-center p-3" onClick={()=>{setModal(false);setShareOptions(false)}}><div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl border border-amber-500 bg-[#101d30] p-5 space-y-4" onClick={e=>e.stopPropagation()}><div className="flex justify-between gap-3"><div><h2 className="text-xl font-bold text-amber-300">D’LOTUS · LISTA DE COMPRAS</h2><p className="text-sm">Contagem feita por {latest.counter_name||'não informado'} · {new Date(latest.created_at).toLocaleString('pt-BR')} · {latest.mode==='reduzida'?'Compra reduzida':'Compra total'}</p></div><button onClick={()=>setModal(false)} className="px-3 py-1 bg-zinc-700 rounded-lg">Fechar ×</button></div>{latest.rows.map((r,i)=><div key={i} className="border-b border-white/10 pb-2"><strong>{r.name}</strong><p className="text-amber-200">Comprar: {r.purchase_packages!=null?`${r.purchase_packages} fardo(s) de ${r.units_per_package}`:`${r.purchase_quantity??r.missing} ${r.unit}`}</p><small>{money(r.subtotal)}</small></div>)}{!latest.rows.length&&<p>Nenhuma reposição necessária.</p>}<strong>Total estimado: {money(latest.total_known)}</strong><div className="flex flex-wrap gap-2"><button onClick={()=>openPrint(latest)} className="bg-sky-700 rounded-lg px-4 py-3">Imprimir (80 mm)</button><button onClick={()=>setShareOptions(v=>!v)} className="bg-green-700 rounded-lg px-4 py-3">Compartilhar lista no WhatsApp</button></div>{shareOptions&&<div className="flex flex-wrap gap-2 border-t border-white/10 pt-3"><button onClick={()=>share(latest,true)}  className="bg-[#254f7e] rounded-lg p-3">Texto com preços</button><button onClick={()=>share(latest,false)}  className="bg-[#254f7e] rounded-lg p-3">Texto sem preços</button></div>}</div></div>}
+    {modal&&latest&&<div className="fixed inset-0 z-[200] bg-black/80 flex items-center justify-center p-3" onClick={()=>{setModal(false);setShareOptions(false)}}><div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl border border-amber-500 bg-[#101d30] p-5 space-y-4" onClick={e=>e.stopPropagation()}><div className="flex justify-between gap-3"><div><h2 className="text-xl font-bold text-amber-300">D’LOTUS · LISTA DE COMPRAS</h2><p className="text-sm">Contagem feita por {latest.counter_name||'não informado'} · {new Date(latest.created_at).toLocaleString('pt-BR')} · {latest.mode==='reduzida'?'Compra reduzida':'Compra total'}</p></div><button onClick={()=>setModal(false)} className="px-3 py-1 bg-zinc-700 rounded-lg">Fechar ×</button></div>{latest.rows.map((r,i)=><div key={i} className="border-b border-white/10 pb-2"><strong>{r.name}</strong><p className="text-amber-200">Comprar: {r.purchase_packages!=null?`${r.purchase_packages} fardo(s) de ${r.units_per_package}`:`${r.purchase_quantity??r.missing} ${r.unit}`}</p><small>{money(r.subtotal)}</small></div>)}{!latest.rows.length&&<p>Nenhuma reposição necessária.</p>}<strong>Total estimado: {money(latest.total_known)}</strong><div className="flex flex-wrap gap-2"><button onClick={()=>openPrint(latest)} className="bg-sky-700 rounded-lg px-4 py-3">Imprimir (80 mm)</button><button onClick={()=>setShareOptions(v=>!v)} className="bg-green-700 rounded-lg px-4 py-3">Compartilhar lista no WhatsApp</button></div>{shareOptions&&<div className="flex flex-wrap gap-2 border-t border-white/10 pt-3"><button onClick={()=>share(latest)} className="bg-[#254f7e] rounded-lg p-3">Enviar lista com valores e total</button></div>}</div></div>}
   </div>;
 }
