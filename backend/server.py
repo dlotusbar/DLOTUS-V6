@@ -200,6 +200,58 @@ ROSH_INITIAL_CATALOG = {
                        ("Carvão",5)],
 }
 
+
+# Catálogo inicial do Estoque Doce: cadastro automático e idempotente no servidor.
+DOCE_INITIAL_CATALOG = [('Fofura cebola', 'Fofura'),
+ ('Fofura presunto', 'Fofura'),
+ ('Fofura churrasco', 'Fofura'),
+ ('Chiclete Push Menta', 'Chicletes'),
+ ('Chiclete Push Morango', 'Chicletes'),
+ ('Chiclete Push 7 belo', 'Chicletes'),
+ ('Chiclete Fregeels Tutti Frutti', 'Chicletes'),
+ ('Chiclete Fregeels Azul', 'Chicletes'),
+ ('Chiclete Fregeels Melancia', 'Chicletes'),
+ ('Bala fregeels Azul', 'Balas'),
+ ('Bala fregeels Preta', 'Balas'),
+ ('Bala fregeels vermelha', 'Balas'),
+ ('Pirulito', 'Pirulitos'),
+ ('Batata Fritop Cebola de salsa', 'Salgadinhos'),
+ ('Batata Fritop Tradicional', 'Salgadinhos'),
+ ('Fandangos Vermelho', 'Salgadinhos'),
+ ('Fandangos Queijo', 'Salgadinhos'),
+ ('Chettos Azul', 'Salgadinhos'),
+ ('Chettos Roxo', 'Salgadinhos'),
+ ('Chettos Laranja', 'Salgadinhos'),
+ ('Doritos', 'Salgadinhos'),
+ ('Rufles tradicional', 'Salgadinhos'),
+ ('Rufles cebola e salsa', 'Salgadinhos'),
+ ('Ebicen camarão', 'Salgadinhos'),
+ ('Torcida Queijo', 'Salgadinhos'),
+ ('Torcida cebola', 'Salgadinhos'),
+ ('Torcida Bacon', 'Salgadinhos'),
+ ('Torcida costelinha', 'Salgadinhos'),
+ ('Torcida churrasco', 'Salgadinhos'),
+ ('Torcida camarão', 'Salgadinhos'),
+ ('Torcida pimenta', 'Salgadinhos'),
+ ('Torcida pão de alho', 'Salgadinhos'),
+ ('Bis', 'Doces'),
+ ('Paçoca', 'Doces'),
+ ('Pingo de leite', 'Doces')]
+
+async def doce_initial_catalog_seed():
+    for name, category in DOCE_INITIAL_CATALOG:
+        # Nunca sobrescreve contagem, preço, metas ou alterações existentes.
+        existing = await db.purchase_products.find_one({"sector": "doce", "name": {"$regex": "^" + re.escape(name) + "$", "$options": "i"}})
+        if existing:
+            continue
+        await db.purchase_products.update_one(
+            {"name": name, "category": category, "sector": "doce"},
+            {"$setOnInsert": {"id": new_id(), "name": name, "category": category,
+                              "sector": "doce", "unit": "unidade", "units_per_package": None,
+                              "target": None, "reduced_target": None, "cost": None,
+                              "notes": "Catálogo inicial Estoque Doce", "created_at": now_iso(),
+                              "created_by": "importação inicial Doce"}}, upsert=True)
+
 async def rosh_initial_catalog_seed():
     for category, items in ROSH_INITIAL_CATALOG.items():
         for name, quantity in items:
@@ -1619,30 +1671,15 @@ async def finalizar_prazo(oid: str, user: dict = Depends(get_current_user)):
         credito = _prazo_disponivel(conta, data_noite)
         if not credito["autorizado"] or (credito["disponivel"] is not None and total > credito["disponivel"]):
             raise HTTPException(403, "Crédito bloqueado ou insuficiente")
-        # Registra cada produto como uma linha independente no extrato da dívida.
-        # A soma do saldo permanece a mesma; não inclui itens cancelados.
-        data_lancamento = now_iso()
-        lancamentos = []
-        for i in order["items"]:
-            if i.get("status") == "cancelled":
-                continue
-            quantidade = int(i.get("quantity") or 1)
-            subtotal = round(float(i.get("subtotal") or 0), 2)
-            lancamentos.append({
-                "id": new_id(), "order_id": oid,
-                "mesa": order.get("table_label", ""),
-                "descricao": i.get("product_name") or "Produto",
-                "quantidade": quantidade,
-                "valor_unitario": round(subtotal / quantidade, 2),
-                "total": subtotal, "data": data_lancamento,
-                "data_noite": data_noite, "usuario": user["id"]
-            })
+        lancamento = {"id": new_id(), "order_id": oid, "descricao": order["table_label"], "quantidade": 1,
+                      "valor_unitario": total, "total": total, "data": now_iso(), "data_noite": data_noite,
+                      "usuario": user["id"], "itens": [{"produto": i.get("product_name"), "quantidade": i.get("quantity"), "total": i.get("subtotal")} for i in order["items"]]}
         # CAS evita que duas comandas consumam o mesmo saldo/limite simultaneamente.
         filtro = {"id": conta["id"], "saldo": conta.get("saldo", 0), "lancamentos": conta.get("lancamentos", [])}
-        atualizado = await db.prazo_contas.update_one(filtro, {"$push": {"lancamentos": {"$each": lancamentos}}, "$inc": {"saldo": total}})
+        atualizado = await db.prazo_contas.update_one(filtro, {"$push": {"lancamentos": lancamento}, "$inc": {"saldo": total}})
         if not atualizado.modified_count:
             raise HTTPException(409, "Crédito alterado por outra venda. Tente novamente")
-        await db.orders.update_one({"id": oid, "status": "credit_processing"}, {"$set": {"status": "credit", "closed_at": now_iso(), "closed_by": user["id"], "total": total, "prazo_lancamento_id": lancamentos[0]["id"]}})
+        await db.orders.update_one({"id": oid, "status": "credit_processing"}, {"$set": {"status": "credit", "closed_at": now_iso(), "closed_by": user["id"], "total": total, "prazo_lancamento_id": lancamento["id"]}})
     except Exception:
         await db.orders.update_one({"id": oid, "status": "credit_processing"}, {"$set": {"status": "open"}})
         raise
@@ -2359,6 +2396,7 @@ async def on_startup():
     await db.users.create_index("username", unique=True)
     await purchase_catalog_seed()
     await rosh_initial_catalog_seed()
+    await doce_initial_catalog_seed()
     await db.orders.create_index("status")
     await db.orders.create_index("closed_at")
     await db.products.create_index("category_id")
@@ -4046,26 +4084,7 @@ async def prazo_editar_cadastro(cid: str, data: PrazoCadastroUpdateIn, user: dic
 
 @api.get("/prazo/contas")
 async def prazo_listar(user: dict = Depends(get_current_user)):
-    contas = await db.prazo_contas.find({"arquivado": {"$ne": True}}, {"_id": 0}).sort("criado_em", -1).to_list(10000)
-    for conta in contas:
-        exibicao = []
-        for lancamento in conta.get("lancamentos", []):
-            itens = lancamento.get("itens")
-            if lancamento.get("order_id") and isinstance(itens, list) and itens:
-                for item in itens:
-                    quantidade = int(item.get("quantidade") or 1)
-                    valor = round(float(item.get("total") or 0), 2)
-                    exibicao.append({
-                        **lancamento, "id": str(lancamento["id"]) + ":" + str(len(exibicao)),
-                        "descricao": item.get("produto") or "Produto",
-                        "quantidade": quantidade,
-                        "valor_unitario": round(valor / quantidade, 2),
-                        "total": valor,
-                    })
-            else:
-                exibicao.append(lancamento)
-        conta["lancamentos"] = exibicao
-    return contas
+    return await db.prazo_contas.find({"arquivado": {"$ne": True}}, {"_id": 0}).sort("criado_em", -1).to_list(10000)
 
 @api.post("/prazo/contas")
 async def prazo_criar(data: PrazoContaIn, user: dict = Depends(get_current_user)):
