@@ -216,19 +216,6 @@ async def rosh_initial_catalog_seed():
                     "initial_count_raw": str(quantity)
                 }}, upsert=True)
 
-async def purchase_migrate_kitchen():
-    """Move somente itens da categoria Cozinha ainda no Bar; seguro repetir.
-    Mantém IDs, configurações e registros históricos intactos.
-    """
-    result = await db.purchase_products.update_many(
-        {"category": {"$regex": r"^\s*cozinha\s*$", "$options": "i"},
-         "$or": [{"sector": "bar"}, {"sector": {"$exists": False}}, {"sector": None}]},
-        {"$set": {"sector": "cozinha"}}
-    )
-    if result.modified_count:
-        logger.info("Compras: %s produtos transferidos para Estoque Cozinha", result.modified_count)
-
-
 def purchase_admin(user):
     return user.get("role", "").lower() == "administrador"
 
@@ -2357,7 +2344,6 @@ async def on_startup():
     await db.users.create_index("username", unique=True)
     await purchase_catalog_seed()
     await rosh_initial_catalog_seed()
-    await purchase_migrate_kitchen()
     await db.orders.create_index("status")
     await db.orders.create_index("closed_at")
     await db.products.create_index("category_id")
