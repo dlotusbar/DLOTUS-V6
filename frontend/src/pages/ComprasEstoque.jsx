@@ -86,34 +86,46 @@ export default function ComprasEstoque(){
       .finally(()=>{if(!cancelled)setSharePreparing(false)});
     return()=>{cancelled=true};
   },[modal,latest]);
+  // Imagem vertical no mesmo estilo da prévia do PDV, sem colunas e sem comprimir texto.
   const makeShareFile=async(doc,withPrices)=>{
     const rows=doc.rows||[];
-    // Colunas impedem que a lista vire uma faixa vertical ilegível no WhatsApp.
-    const perColumn=18, cols=Math.max(1,Math.ceil(rows.length/perColumn));
-    const colW=790, margin=64, top=360, rowH=withPrices?126:103;
-    const W=margin*2+cols*colW, H=Math.max(780,top+Math.min(perColumn,Math.max(1,rows.length))*rowH+150);
-    if(W>16000||H>16000)throw new Error('Lista muito grande para gerar imagem única neste aparelho');
+    const W=800, margin=44, rowH=withPrices?182:150;
+    const headerH=255, footerH=withPrices?125:55;
+    const H=Math.max(570,headerH+rows.length*rowH+footerH);
+    if(H>16000)throw new Error('Lista longa demais para uma imagem única. Para manter a leitura, divida a lista ou envie como documento.');
     const canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;
     const ctx=canvas.getContext('2d');if(!ctx)throw new Error('Canvas indisponível');
-    const bg=ctx.createLinearGradient(0,0,W,H);bg.addColorStop(0,'#06172e');bg.addColorStop(1,'#123d70');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
-    ctx.strokeStyle='#eac86d';ctx.lineWidth=6;ctx.strokeRect(20,20,W-40,H-40);
-    ctx.textAlign='center';ctx.fillStyle='#f7d879';ctx.font='bold 83px Arial';ctx.fillText('D’LOTUS',W/2,120);
-    ctx.fillStyle='#ffffff';ctx.font='bold 51px Arial';ctx.fillText('LISTA DE COMPRAS',W/2,195);
-    const names={bar:'BAR',rosh:'ROSH',cozinha:'COZINHA',doce:'DOCE',doces:'DOCES'};
-    ctx.font='bold 30px Arial';ctx.fillText(`${names[doc.sector]||String(doc.sector||'ESTOQUE').toUpperCase()} • ${doc.mode==='reduzida'?'COMPRA REDUZIDA':'COMPRA TOTAL'}`,W/2,248);
-    ctx.font='27px Arial';ctx.fillStyle='#d8e6f8';ctx.fillText(`${doc.created_at?new Date(doc.created_at).toLocaleString('pt-BR'):''} • Contagem: ${doc.counter_name||'—'}`,W/2,296);
-    ctx.textAlign='left';
+    ctx.fillStyle='#101d30';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#fcd46d';ctx.font='bold 43px Arial';
+    ctx.fillText('D’LOTUS · LISTA DE',margin,67);
+    ctx.fillText('COMPRAS',margin,117);
+    ctx.fillStyle='#ffffff';ctx.font='29px Arial';
+    const names={bar:'Bar',rosh:'Rosh',cozinha:'Cozinha',doce:'Doce'};
+    ctx.fillText(`Estoque ${names[doc.sector]||'D’Lotus'} · Contagem feita por`,margin,166,W-margin*2);
+    ctx.fillText(String(doc.counter_name||'não informado'),margin,201,W-margin*2);
+    const date=doc.created_at?new Date(doc.created_at).toLocaleString('pt-BR'):'';
+    ctx.font='25px Arial';ctx.fillStyle='#d5e0ef';
+    ctx.fillText(`${date} · ${doc.mode==='reduzida'?'Compra reduzida':'Compra total'}`,margin,235,W-margin*2);
+    const wrap=(value,maxWidth,font)=>{
+      ctx.font=font;const words=String(value||'').split(/\s+/),lines=[];let line='';
+      for(const word of words){const test=line?line+' '+word:word;if(ctx.measureText(test).width>maxWidth&&line){lines.push(line);line=word}else line=test}
+      if(line)lines.push(line);return lines;
+    };
     rows.forEach((r,i)=>{
-      const col=Math.floor(i/perColumn),line=i%perColumn;
-      const x=margin+col*colW+18,y=top+line*rowH;
-      const qty=r.purchase_packages!=null?`${r.purchase_packages} fardo(s) de ${r.units_per_package}`:`${r.purchase_quantity??r.missing} ${r.unit||'un.'}`;
-      ctx.fillStyle=line%2===0?'#142d4d':'#0c2544';ctx.fillRect(x-8,y-40,colW-30,rowH-3);
-      ctx.fillStyle='#ffdb76';ctx.font='bold 32px Arial';ctx.fillText(`${i+1}. ${String(r.name||'')}`,x+9,y, colW-75);
-      ctx.fillStyle='#ffffff';ctx.font='30px Arial';ctx.fillText(`Comprar: ${qty}`,x+25,y+40,colW-90);
-      if(withPrices){ctx.fillStyle='#c8e3f7';ctx.font='27px Arial';ctx.fillText(`Estimado: ${money(r.subtotal)}`,x+25,y+78,colW-90)}
+      const y=headerH+i*rowH;
+      ctx.fillStyle='#ffffff';ctx.font='bold 33px Arial';
+      const lines=wrap(r.name,W-margin*2,'bold 33px Arial');
+      // Preserva o nome inteiro, até três linhas, em vez de esmagar horizontalmente.
+      lines.slice(0,3).forEach((line,j)=>ctx.fillText(line,margin,y+30+j*37,W-margin*2));
+      const nameBottom=y+30+Math.min(lines.length,3)*37;
+      const qty=r.purchase_packages!=null?`${r.purchase_packages} fardo(s) de ${r.units_per_package}`:`${r.purchase_quantity??r.missing} ${r.unit||'unidade'}`;
+      ctx.fillStyle='#f4d58a';ctx.font='30px Arial';
+      ctx.fillText(`Comprar: ${qty}`,margin,Math.min(y+rowH-50,nameBottom+12),W-margin*2);
+      if(withPrices){ctx.fillStyle='#e7edf6';ctx.font='25px Arial';ctx.fillText(`Estimado: ${r.subtotal==null?'A definir':money(r.subtotal)}`,margin,y+rowH-22,W-margin*2)}
+      ctx.strokeStyle='#34445a';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(margin,y+rowH-7);ctx.lineTo(W-margin,y+rowH-7);ctx.stroke();
     });
-    if(!rows.length){ctx.fillStyle='#fff';ctx.font='36px Arial';ctx.fillText('Nenhuma reposição necessária.',margin,top+40)}
-    if(withPrices){ctx.fillStyle='#ffdb76';ctx.font='bold 40px Arial';ctx.textAlign='right';ctx.fillText(`TOTAL ESTIMADO: ${money(doc.total_known)}`,W-margin,H-75)}
+    if(!rows.length){ctx.fillStyle='#fff';ctx.font='32px Arial';ctx.fillText('Nenhuma reposição necessária.',margin,headerH+50)}
+    if(withPrices){ctx.fillStyle='#f4d58a';ctx.font='bold 33px Arial';ctx.fillText(`Total estimado: ${money(doc.total_known)}`,margin,H-65,W-margin*2)}
     const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
     if(!blob)throw new Error('Falha ao gerar PNG');
     return new File([blob],`DLOTUS_Compras_${doc.sector||'estoque'}${withPrices?'_precos':''}.png`,{type:'image/png'});
