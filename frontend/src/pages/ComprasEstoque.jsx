@@ -114,17 +114,7 @@ export default function ComprasEstoque(){
       const ok=document.execCommand('copy');field.remove();
       if(!ok)throw new Error('Falha ao copiar a lista');
     };
-    if(message.length>1800){
-      copyFullText()
-        .then(()=>{
-          toast.success('Lista completa copiada! Abra o WhatsApp, escolha o contato e cole a mensagem.');
-          // Não passar o texto na URL: esse método trunca listas grandes.
-          window.open('https://wa.me/','_blank','noopener,noreferrer');
-        })
-        .catch(()=>toast.error('Não foi possível copiar a lista completa.'));
-      return;
-    }
-    if(navigator.share){
+    if(typeof navigator.share === 'function'){
       navigator.share({title:'D’Lotus - Lista de Compras',text:message})
         .catch(e=>{if(e.name!=='AbortError'){
           console.error('Falha ao compartilhar texto',e);
@@ -133,7 +123,7 @@ export default function ComprasEstoque(){
         }});
       return;
     }
-    copyFullText().then(()=>toast.success('Lista copiada. Cole no WhatsApp.'))
+    copyFullText().then(()=>toast.success('Lista completa copiada. Abra o WhatsApp e cole a mensagem.'))
       .catch(()=>toast.error('Não foi possível copiar a lista.'));
   };
   const sectorLabel=x=>({bar:'Bar',rosh:'Rosh',cozinha:'Cozinha',doce:'Doce'}[x]||x);
