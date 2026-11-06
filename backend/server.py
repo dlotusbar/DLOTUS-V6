@@ -4093,12 +4093,14 @@ async def prazo_excluir(cid: str, user: dict = Depends(get_current_user)):
     _prazo_admin(user)
     conta = await db.prazo_contas.find_one({"id": cid}, {"_id": 0})
     if not conta: raise HTTPException(404, "Cliente não encontrado")
-    if round(float(conta.get("saldo", 0)), 2) != 0 or conta.get("lancamentos") or conta.get("recebimentos"):
-        raise HTTPException(409, "Cliente com dívida ou movimentações não pode ser excluído. Quite a dívida e arquive para preservar o histórico.")
-    result = await db.prazo_contas.delete_one({"id": cid, "saldo": {"$lte": 0}, "lancamentos": [], "recebimentos": []})
+    if round(float(conta.get("saldo", 0)), 2) != 0:
+        raise HTTPException(409, "Cliente com saldo pendente não pode ser excluído. Quite a dívida primeiro.")
+    # Confere novamente o saldo no momento da exclusão para evitar apagar dívida nova.
+    result = await db.prazo_contas.delete_one({"id": cid, "saldo": {"$gte": -0.001, "$lte": 0.001}})
     if not result.deleted_count: raise HTTPException(409, "Cadastro alterado. Atualize e tente novamente")
-    await audit("prazo_excluir", user, "prazo_contas", cid, {"cliente": conta.get("cliente")})
+    await audit("prazo_excluir", user, "prazo_contas", cid, {"cliente": conta.get("cliente"), "lancamentos": len(conta.get("lancamentos") or []), "recebimentos": len(conta.get("recebimentos") or [])})
     return {"ok": True}
+
 
 @api.put("/prazo/contas/{cid}/arquivar")
 async def prazo_arquivar(cid: str, user: dict = Depends(get_current_user)):
