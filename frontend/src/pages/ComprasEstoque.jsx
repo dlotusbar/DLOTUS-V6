@@ -71,9 +71,8 @@ export default function ComprasEstoque(){
   const [configDraft,setConfigDraft]=useState({});
   const saveTargets=async p=>{const values=configDraft[p.id]||{};const target=num(values.target??p.target),reduced_target=num(values.reduced_target??p.reduced_target);if([target,reduced_target].some(v=>v!==null&&(!Number.isFinite(v)||v<0)))return toast.error('Informe quantidades válidas');if(target!==null&&reduced_target!==null&&reduced_target>target)return toast.error('O estoque reduzido não pode superar o normal');setLoading(true);try{await api.put(`/compras/produtos/${p.id}`,{...p,target,reduced_target});setConfigDraft(prev=>{const next={...prev};delete next[p.id];return next});toast.success('Metas de estoque salvas');await load()}catch(e){error(e)}finally{setLoading(false)}};
   const openPrint=doc=>{const w=window.open('','_blank');if(!w)return toast.error('Permita janelas pop-up para imprimir na térmica');w.document.write(buildHtml(doc));w.document.close();w.focus();setTimeout(()=>w.print(),350)};
-  // Compartilha texto formatado, sem canvas nem limite de altura da imagem.
-  // O Android abre a escolha de aplicativo e contato a partir do toque.
-  const share=(doc)=>{
+  // Envia a lista completa como arquivo TXT, evitando limites de tamanho de URLs/mensagens.
+  const share=async(doc)=>{
     const sectorName={bar:'Bar',rosh:'Rosh',cozinha:'Cozinha',doce:'Doce'}[doc.sector]||'Estoque';
     const date=doc.created_at?new Date(doc.created_at).toLocaleString('pt-BR'):'';
     const rows=doc.rows||[];
@@ -82,11 +81,10 @@ export default function ComprasEstoque(){
       `Estoque: ${sectorName}`,
       `Contagem: ${doc.counter_name||'não informado'}`,
       `${date} - ${doc.mode==='reduzida'?'Compra reduzida':'Compra total'}`,
-      '━━━━━━━━━━━━━━━━━━',
+      '──────────────────',
     ];
     let grandTotal=0;
-    rows.forEach((r,i)=>{
-      // Apenas quantidade A COMPRAR, nunca quantidade existente no estoque.
+    rows.forEach(r=>{
       const qtyRaw=Number(r.purchase_quantity??(r.purchase_packages!=null
         ?Number(r.purchase_packages)*Number(r.units_per_package||1)
         :r.missing??0));
@@ -95,36 +93,32 @@ export default function ComprasEstoque(){
       const price=Number.isFinite(priceRaw)?priceRaw:0;
       const subtotal=Math.round(qty*price*100)/100;
       grandTotal+=subtotal;
-      lines.push(`${r.name}`);
+      lines.push(String(r.name||''));
       lines.push(`${qty.toLocaleString('pt-BR')} Comprar × ${money(price)} = ${money(subtotal)}`);
       lines.push('──────────────────');
     });
     if(!rows.length)lines.push('Nenhuma reposição necessária.');
     lines.push(`TOTAL GERAL A PAGAR: ${money(Math.round(grandTotal*100)/100)}`);
-    const message=lines.join('\n');
-    // Compartilhamento nativo evita links wa.me com URL gigante, que cortam listas.
-    // Para listas extensas, a área de transferência preserva todo o conteúdo em
-    // uma única mensagem, que o usuário cola no WhatsApp.
-    const copyFullText=async()=>{
-      if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(message);return;}
-      const field=document.createElement('textarea');
-      field.value=message;
-      field.style.position='fixed';field.style.left='-9999px';
-      document.body.appendChild(field);field.focus();field.select();
-      const ok=document.execCommand('copy');field.remove();
-      if(!ok)throw new Error('Falha ao copiar a lista');
-    };
-    if(typeof navigator.share === 'function'){
-      navigator.share({title:'D’Lotus - Lista de Compras',text:message})
-        .catch(e=>{if(e.name!=='AbortError'){
-          console.error('Falha ao compartilhar texto',e);
-          copyFullText().then(()=>toast.success('Lista copiada. Cole no WhatsApp.'))
-            .catch(()=>toast.error('Não foi possível compartilhar a lista.'));
-        }});
-      return;
+    const content=lines.join('\r\n')+'\r\n';
+    const filename=`DLotus_Lista_${String(doc.sector||'Estoque').replace(/[^a-zA-Z0-9_-]/g,'')}.txt`;
+    const file=new File(['\uFEFF',content],filename,{type:'text/plain'});
+    try{
+      if(typeof navigator.share==='function' && typeof navigator.canShare==='function' && navigator.canShare({files:[file]})){
+        await navigator.share({files:[file],title:'D’Lotus - Lista de Compras'});
+        return;
+      }
+      // Alguns navegadores (especialmente desktop) não suportam arquivos no menu compartilhar.
+      // Nesses casos baixa o TXT completo para o usuário anexar pelo WhatsApp.
+      const url=URL.createObjectURL(file);
+      const link=document.createElement('a');
+      link.href=url;link.download=filename;document.body.appendChild(link);link.click();link.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),60000);
+      toast.message('O Android não permitiu enviar o TXT diretamente. O arquivo completo foi baixado: abra o WhatsApp e anexe-o como Documento.');
+    }catch(e){
+      if(e?.name==='AbortError')return;
+      console.error('Erro ao compartilhar lista TXT',e);
+      const url=URL.createObjectURL(file); const link=document.createElement('a'); link.href=url; link.download=filename; document.body.appendChild(link); link.click(); link.remove(); setTimeout(()=>URL.revokeObjectURL(url),60000); toast.message('Arquivo TXT baixado. Envie pelo WhatsApp como Documento.');
     }
-    copyFullText().then(()=>toast.success('Lista completa copiada. Abra o WhatsApp e cole a mensagem.'))
-      .catch(()=>toast.error('Não foi possível copiar a lista.'));
   };
   const sectorLabel=x=>({bar:'Bar',rosh:'Rosh',cozinha:'Cozinha',doce:'Doce'}[x]||x);
   const chooseSector=x=>{setSector(x);setCurrent(null);setEditing(null);setForm({...blank,sector:x})};
