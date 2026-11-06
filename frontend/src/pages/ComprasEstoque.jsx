@@ -87,29 +87,33 @@ export default function ComprasEstoque(){
     return()=>{cancelled=true};
   },[modal,latest]);
   const makeShareFile=async(doc,withPrices)=>{
-    const rows=doc.rows||[], W=1080, rowH=withPrices?114:94;
-    const H=Math.max(690,490+rows.length*rowH+(withPrices?130:50));
-    if(H>16000)throw new Error('Lista grande demais para uma imagem neste aparelho');
+    const rows=doc.rows||[];
+    // Colunas impedem que a lista vire uma faixa vertical ilegível no WhatsApp.
+    const perColumn=18, cols=Math.max(1,Math.ceil(rows.length/perColumn));
+    const colW=790, margin=64, top=360, rowH=withPrices?126:103;
+    const W=margin*2+cols*colW, H=Math.max(780,top+Math.min(perColumn,Math.max(1,rows.length))*rowH+150);
+    if(W>16000||H>16000)throw new Error('Lista muito grande para gerar imagem única neste aparelho');
     const canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;
     const ctx=canvas.getContext('2d');if(!ctx)throw new Error('Canvas indisponível');
-    const bg=ctx.createLinearGradient(0,0,W,H);bg.addColorStop(0,'#07162f');bg.addColorStop(1,'#123f73');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
-    ctx.strokeStyle='#d8ae52';ctx.lineWidth=7;ctx.strokeRect(34,34,W-68,H-68);
-    ctx.textAlign='center';ctx.fillStyle='#eac86d';ctx.font='bold 88px Arial';ctx.fillText('D’LOTUS',540,170);
-    ctx.font='bold 55px Arial';ctx.fillText('LISTA DE COMPRAS',540,255);
+    const bg=ctx.createLinearGradient(0,0,W,H);bg.addColorStop(0,'#06172e');bg.addColorStop(1,'#123d70');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle='#eac86d';ctx.lineWidth=6;ctx.strokeRect(20,20,W-40,H-40);
+    ctx.textAlign='center';ctx.fillStyle='#f7d879';ctx.font='bold 83px Arial';ctx.fillText('D’LOTUS',W/2,120);
+    ctx.fillStyle='#ffffff';ctx.font='bold 51px Arial';ctx.fillText('LISTA DE COMPRAS',W/2,195);
     const names={bar:'BAR',rosh:'ROSH',cozinha:'COZINHA',doce:'DOCE',doces:'DOCES'};
-    ctx.font='32px Arial';ctx.fillStyle='#ffffff';ctx.fillText(`${names[doc.sector]||String(doc.sector||'ESTOQUE').toUpperCase()} • ${doc.mode==='reduzida'?'COMPRA REDUZIDA':'COMPRA TOTAL'}`,540,317);
-    ctx.fillText(doc.created_at?new Date(doc.created_at).toLocaleString('pt-BR'):'',540,367);
-    ctx.font='27px Arial';ctx.fillText(`Contagem: ${doc.counter_name||'—'}`,540,408);
-    ctx.textAlign='left';let y=470;
+    ctx.font='bold 30px Arial';ctx.fillText(`${names[doc.sector]||String(doc.sector||'ESTOQUE').toUpperCase()} • ${doc.mode==='reduzida'?'COMPRA REDUZIDA':'COMPRA TOTAL'}`,W/2,248);
+    ctx.font='27px Arial';ctx.fillStyle='#d8e6f8';ctx.fillText(`${doc.created_at?new Date(doc.created_at).toLocaleString('pt-BR'):''} • Contagem: ${doc.counter_name||'—'}`,W/2,296);
+    ctx.textAlign='left';
     rows.forEach((r,i)=>{
+      const col=Math.floor(i/perColumn),line=i%perColumn;
+      const x=margin+col*colW+18,y=top+line*rowH;
       const qty=r.purchase_packages!=null?`${r.purchase_packages} fardo(s) de ${r.units_per_package}`:`${r.purchase_quantity??r.missing} ${r.unit||'un.'}`;
-      ctx.fillStyle='#eac86d';ctx.font='bold 34px Arial';ctx.fillText(`${i+1}. ${String(r.name||'').slice(0,38)}`,90,y,900);
-      ctx.fillStyle='#ffffff';ctx.font='32px Arial';ctx.fillText(`Comprar: ${qty}`,110,y+43,850);
-      if(withPrices){ctx.font='27px Arial';ctx.fillText(`Estimado: ${money(r.subtotal)}`,110,y+80,850)}
-      y+=rowH;
+      ctx.fillStyle=line%2===0?'#142d4d':'#0c2544';ctx.fillRect(x-8,y-40,colW-30,rowH-3);
+      ctx.fillStyle='#ffdb76';ctx.font='bold 32px Arial';ctx.fillText(`${i+1}. ${String(r.name||'')}`,x+9,y, colW-75);
+      ctx.fillStyle='#ffffff';ctx.font='30px Arial';ctx.fillText(`Comprar: ${qty}`,x+25,y+40,colW-90);
+      if(withPrices){ctx.fillStyle='#c8e3f7';ctx.font='27px Arial';ctx.fillText(`Estimado: ${money(r.subtotal)}`,x+25,y+78,colW-90)}
     });
-    if(!rows.length){ctx.font='40px Arial';ctx.fillText('Nenhuma reposição necessária.',100,500)}
-    if(withPrices){ctx.fillStyle='#eac86d';ctx.font='bold 38px Arial';ctx.fillText(`Total estimado: ${money(doc.total_known)}`,90,H-110,900)}
+    if(!rows.length){ctx.fillStyle='#fff';ctx.font='36px Arial';ctx.fillText('Nenhuma reposição necessária.',margin,top+40)}
+    if(withPrices){ctx.fillStyle='#ffdb76';ctx.font='bold 40px Arial';ctx.textAlign='right';ctx.fillText(`TOTAL ESTIMADO: ${money(doc.total_known)}`,W-margin,H-75)}
     const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
     if(!blob)throw new Error('Falha ao gerar PNG');
     return new File([blob],`DLOTUS_Compras_${doc.sector||'estoque'}${withPrices?'_precos':''}.png`,{type:'image/png'});
