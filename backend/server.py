@@ -1619,15 +1619,30 @@ async def finalizar_prazo(oid: str, user: dict = Depends(get_current_user)):
         credito = _prazo_disponivel(conta, data_noite)
         if not credito["autorizado"] or (credito["disponivel"] is not None and total > credito["disponivel"]):
             raise HTTPException(403, "Crédito bloqueado ou insuficiente")
-        lancamento = {"id": new_id(), "order_id": oid, "descricao": order["table_label"], "quantidade": 1,
-                      "valor_unitario": total, "total": total, "data": now_iso(), "data_noite": data_noite,
-                      "usuario": user["id"], "itens": [{"produto": i.get("product_name"), "quantidade": i.get("quantity"), "total": i.get("subtotal")} for i in order["items"]]}
+        # Registra cada produto como uma linha independente no extrato da dívida.
+        # A soma do saldo permanece a mesma; não inclui itens cancelados.
+        data_lancamento = now_iso()
+        lancamentos = []
+        for i in order["items"]:
+            if i.get("status") == "cancelled":
+                continue
+            quantidade = int(i.get("quantity") or 1)
+            subtotal = round(float(i.get("subtotal") or 0), 2)
+            lancamentos.append({
+                "id": new_id(), "order_id": oid,
+                "mesa": order.get("table_label", ""),
+                "descricao": i.get("product_name") or "Produto",
+                "quantidade": quantidade,
+                "valor_unitario": round(subtotal / quantidade, 2),
+                "total": subtotal, "data": data_lancamento,
+                "data_noite": data_noite, "usuario": user["id"]
+            })
         # CAS evita que duas comandas consumam o mesmo saldo/limite simultaneamente.
         filtro = {"id": conta["id"], "saldo": conta.get("saldo", 0), "lancamentos": conta.get("lancamentos", [])}
-        atualizado = await db.prazo_contas.update_one(filtro, {"$push": {"lancamentos": lancamento}, "$inc": {"saldo": total}})
+        atualizado = await db.prazo_contas.update_one(filtro, {"$push": {"lancamentos": {"$each": lancamentos}}, "$inc": {"saldo": total}})
         if not atualizado.modified_count:
             raise HTTPException(409, "Crédito alterado por outra venda. Tente novamente")
-        await db.orders.update_one({"id": oid, "status": "credit_processing"}, {"$set": {"status": "credit", "closed_at": now_iso(), "closed_by": user["id"], "total": total, "prazo_lancamento_id": lancamento["id"]}})
+        await db.orders.update_one({"id": oid, "status": "credit_processing"}, {"$set": {"status": "credit", "closed_at": now_iso(), "closed_by": user["id"], "total": total, "prazo_lancamento_id": lancamentos[0]["id"]}})
     except Exception:
         await db.orders.update_one({"id": oid, "status": "credit_processing"}, {"$set": {"status": "open"}})
         raise
@@ -4031,7 +4046,26 @@ async def prazo_editar_cadastro(cid: str, data: PrazoCadastroUpdateIn, user: dic
 
 @api.get("/prazo/contas")
 async def prazo_listar(user: dict = Depends(get_current_user)):
-    return await db.prazo_contas.find({"arquivado": {"$ne": True}}, {"_id": 0}).sort("criado_em", -1).to_list(10000)
+    contas = await db.prazo_contas.find({"arquivado": {"$ne": True}}, {"_id": 0}).sort("criado_em", -1).to_list(10000)
+    for conta in contas:
+        exibicao = []
+        for lancamento in conta.get("lancamentos", []):
+            itens = lancamento.get("itens")
+            if lancamento.get("order_id") and isinstance(itens, list) and itens:
+                for item in itens:
+                    quantidade = int(item.get("quantidade") or 1)
+                    valor = round(float(item.get("total") or 0), 2)
+                    exibicao.append({
+                        **lancamento, "id": str(lancamento["id"]) + ":" + str(len(exibicao)),
+                        "descricao": item.get("produto") or "Produto",
+                        "quantidade": quantidade,
+                        "valor_unitario": round(valor / quantidade, 2),
+                        "total": valor,
+                    })
+            else:
+                exibicao.append(lancamento)
+        conta["lancamentos"] = exibicao
+    return contas
 
 @api.post("/prazo/contas")
 async def prazo_criar(data: PrazoContaIn, user: dict = Depends(get_current_user)):
