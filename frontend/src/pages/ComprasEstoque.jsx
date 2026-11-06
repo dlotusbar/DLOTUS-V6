@@ -15,6 +15,149 @@ function buildHtml(doc) {
   const body=Object.entries(groups).map(([cat,rows])=>`<h3>${esc(cat)}</h3><table><thead><tr><th>Produto</th><th>Comprar</th><th>Custo unit.</th><th>Subtotal</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.name)}</td><td>${esc(r.purchase_packages != null ? `${r.purchase_packages} fardo(s) de ${r.units_per_package}` : r.purchase_quantity ?? r.missing)} ${r.purchase_packages != null ? "" : esc(r.unit)}</td><td>${esc(money(r.cost))}</td><td>${esc(money(r.subtotal))}</td></tr>`).join('')}</tbody></table>`).join('');
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Compras D'Lotus</title><style>body{font:15px Arial,sans-serif;background:#080d17;color:#f5f7fc;margin:0;padding:36px}header{padding:25px;border:1px solid #bc963e;border-radius:14px;background:linear-gradient(110deg,#091a37,#050810)}h1{color:#e4bd59;margin:0}small{color:#9fb5d4}h3{margin-top:30px;color:#e4bd59;border-bottom:1px solid #42628c;padding-bottom:8px}table{width:100%;border-collapse:collapse}th{text-align:left;background:#13345a;color:#fff}td,th{padding:12px;border-bottom:1px solid #324057}.total{margin-top:25px;text-align:right;font-size:22px;color:#e4bd59}.notice{font-size:12px;color:#cbd5e1}@media print{@page{size:80mm auto;margin:2mm}html,body{width:76mm!important;max-width:76mm!important;margin:0!important;padding:0!important;background:#fff!important;color:#000!important;font:10px Arial,sans-serif!important}*,*::before,*::after{color:#000!important;background:#fff!important;background-image:none!important;box-shadow:none!important;text-shadow:none!important;-webkit-print-color-adjust:economy!important;print-color-adjust:economy!important}header{padding:2mm 0!important;border:0!important;border-bottom:1px solid #000!important;border-radius:0!important}h1{font-size:14px!important;margin:0 0 2mm!important}small{font-size:9px!important}h3{font-size:11px!important;margin:4mm 0 1mm!important;padding:0 0 1mm!important;border-bottom:1px solid #000!important}table{width:100%!important;table-layout:fixed!important;border-collapse:collapse!important}th,td{font-size:9px!important;padding:1mm .5mm!important;overflow-wrap:anywhere!important;word-break:break-word!important;border-bottom:1px dashed #999!important}th:nth-child(1){width:39%}th:nth-child(2){width:23%}th:nth-child(3){width:19%}th:nth-child(4){width:19%}.total{font-size:11px!important;margin-top:3mm!important;text-align:right!important}.notice{font-size:9px!important}}</style></head><body><header><h1>D’LOTUS · LISTA DE COMPRAS</h1><small>Gerada em ${esc(new Date(doc.created_at).toLocaleString('pt-BR'))} · Contagem: ${esc(doc.counter_name||doc.created_by_name||doc.created_by)} · Finalizada: ${esc(doc.finished_at?new Date(doc.finished_at).toLocaleString('pt-BR'):'—')}</small></header>${body||'<p>Nenhuma reposição necessária.</p>'}<p class="total">Total estimado dos itens com preço: ${esc(money(doc.total_known))}</p>${doc.has_unpriced?'<p class="notice">* Existem produtos sem preço cadastrado; o total não inclui esses itens.</p>':''}</body></html>`;
 }
+const docesIniciais = [
+  {
+    "name": "Fofura cebola",
+    "category": "Fofura"
+  },
+  {
+    "name": "Fofura presunto",
+    "category": "Fofura"
+  },
+  {
+    "name": "Fofura churrasco",
+    "category": "Fofura"
+  },
+  {
+    "name": "Chiclete Push Menta",
+    "category": "Chicletes"
+  },
+  {
+    "name": "Chiclete Push Morango",
+    "category": "Chicletes"
+  },
+  {
+    "name": "Chiclete Push 7 belo",
+    "category": "Chicletes"
+  },
+  {
+    "name": "Chiclete Fregeels Tutti Frutti",
+    "category": "Chicletes"
+  },
+  {
+    "name": "Chiclete Fregeels Azul",
+    "category": "Chicletes"
+  },
+  {
+    "name": "Chiclete Fregeels Melancia",
+    "category": "Chicletes"
+  },
+  {
+    "name": "Bala fregeels Azul",
+    "category": "Balas"
+  },
+  {
+    "name": "Bala fregeels Preta",
+    "category": "Balas"
+  },
+  {
+    "name": "Bala fregeels vermelha",
+    "category": "Balas"
+  },
+  {
+    "name": "Pirulito",
+    "category": "Pirulitos"
+  },
+  {
+    "name": "Batata Fritop Cebola de salsa",
+    "category": "Salgadinhos"
+  },
+  {
+    "name": "Batata Fritop Tradicional",
+    "category": "Salgadinhos"
+  },
+  {
+    "name": "Fandangos Vermelho",
+    "category": "Salgadinhos"
+  },
+  {
+    "name": "Fandangos Queijo",
+    "category": "Salgadinhos"
+  },
+  {
+    "name": "Chettos Azul",
+    "category": "Salgadinhos"
+  },
+  {
+    "name": "Chettos Roxo",
+    "category": "Salgadinhos"
+  },
+  {
+    "name": "Chettos Laranja",
+    "category": "Salgadinhos"
+  },
+  {
+    "name": "Doritos",
+    "category": "Salgadinhos"
+  },
+  {
+    "name": "Rufles tradicional",
+    "category": "Salgadinhos"
+  },
+  {
+    "name": "Rufles cebola e salsa",
+    "category": "Salgadinhos"
+  },
+  {
+    "name": "Ebicen camarão",
+    "category": "Salgadinhos"
+  },
+  {
+    "name": "Torcida Queijo",
+    "category": "Salgadinhos"
+  },
+  {
+    "name": "Torcida cebola",
+    "category": "Salgadinhos"
+  },
+  {
+    "name": "Torcida Bacon",
+    "category": "Salgadinhos"
+  },
+  {
+    "name": "Torcida costelinha",
+    "category": "Salgadinhos"
+  },
+  {
+    "name": "Torcida churrasco",
+    "category": "Salgadinhos"
+  },
+  {
+    "name": "Torcida camarão",
+    "category": "Salgadinhos"
+  },
+  {
+    "name": "Torcida pimenta",
+    "category": "Salgadinhos"
+  },
+  {
+    "name": "Torcida pão de alho",
+    "category": "Salgadinhos"
+  },
+  {
+    "name": "Bis",
+    "category": "Doces"
+  },
+  {
+    "name": "Paçoca",
+    "category": "Doces"
+  },
+  {
+    "name": "Pingo de leite",
+    "category": "Doces"
+  }
+];
+
 export default function ComprasEstoque(){
   const {user}=useAuth();
   const admin=user?.role?.toLowerCase()==='administrador';
@@ -65,6 +208,28 @@ export default function ComprasEstoque(){
   const visibleProducts=products.filter(p=>String(p.sector||'bar').trim().toLowerCase()===sector);
   const groups=useMemo(()=>visibleProducts.reduce((acc,p)=>{(acc[p.category]??=[]).push(p);return acc},{}),[visibleProducts]);
   const saveProduct=async()=>{if(!form.name.trim()||!form.category.trim())return toast.error('Informe nome e categoria');const payload={...form,target:num(form.target),cost:num(form.cost),units_per_package:num(form.units_per_package),reduced_target:num(form.reduced_target),sector};try{if(editing)await api.put(`/compras/produtos/${editing}`,payload);else await api.post('/compras/produtos',payload);toast.success('Produto salvo');setForm({...blank,sector});setEditing(null);await load()}catch(e){error(e)}};
+  // Cadastro manual e idempotente: não modifica produtos existentes nem cria duplicatas.
+  const importarDoces=async()=>{
+    if(!admin)return toast.error('Somente administrador pode cadastrar produtos');
+    setLoading(true);
+    let criados=0;
+    try{
+      const {data:atuais}=await api.get('/compras/produtos');
+      const nomes=new Set(atuais.filter(p=>String(p.sector||'bar').toLowerCase()==='doce').map(p=>String(p.name||'').trim().toLocaleLowerCase('pt-BR')));
+      for(const item of docesIniciais){
+        const chave=item.name.trim().toLocaleLowerCase('pt-BR');
+        if(nomes.has(chave))continue;
+        await api.post('/compras/produtos',{...blank,...item,sector:'doce',unit:'unidade',cost:0,target:null,reduced_target:null,units_per_package:null});
+        nomes.add(chave);criados++;
+      }
+      await load();
+      toast.success(criados?`${criados} produtos cadastrados no Estoque Doces`:'Todos os produtos já estão cadastrados');
+    }catch(e){
+      await load();
+      toast.error(`Importação interrompida após ${criados} produtos. Clique novamente para continuar sem duplicar.`);
+      error(e);
+    }finally{setLoading(false)}
+  };
   const edit=p=>{setForm({...p,target:p.target??'',cost:p.cost??'',units_per_package:p.units_per_package??'',reduced_target:p.reduced_target??''});setEditing(p.id);setTab('cadastro');window.scrollTo(0,0)};
   const remove=async p=>{if(!window.confirm(`Excluir ${p.name}?`))return;try{await api.delete(`/compras/produtos/${p.id}`);toast.success('Excluído');load()}catch(e){error(e)}};
   const generate=async()=>{if(!draftLoaded)return toast.error('Aguarde a contagem carregar');if(!finished)return toast.error('Finalize a contagem antes de gerar a lista');setLoading(true);try{const quantities=Object.fromEntries(Object.entries(counts).filter(([k,v])=>v!==''&&v!=null).map(([k,v])=>[k,Number(v)]));const packed=Object.fromEntries(Object.entries(packages).filter(([k,v])=>v!==''&&v!=null).map(([k,v])=>[k,Number(v)]));if(!Object.keys(quantities).length&&!Object.keys(packed).length){toast.error('Conte pelo menos um produto');return}const {data}=await api.post(`/compras/gerar-lista?sector=${sector}&mode=${mode}`,{});setLatest(data);setModal(true);toast.success('Lista gerada');await load()}catch(e){error(e)}finally{setLoading(false)}};
@@ -150,7 +315,7 @@ export default function ComprasEstoque(){
     <div className="flex flex-wrap gap-2">{[['contagem','Contagem',ClipboardCheck],['cadastro','Produtos',Plus],['contador','Contador',ClipboardCheck],...(admin?[['configurar','Configurar Estoque',Pencil]]:[]),['historico','Histórico',History],['listas','Listas de compras',FileText]].map(([id,label,Icon])=><button key={id} onClick={()=>setTab(id)} className={`rounded-xl px-4 py-3 flex items-center gap-2 text-sm ${tab===id?'bg-[#15528b] text-white border border-amber-500/50':'bg-[#121c2c] text-zinc-300 border border-white/10'}`}><Icon size={16}/>{label}</button>)}</div>
     {tab==='contador'&&<section className="rounded-xl bg-[#101a29] p-5 space-y-4"><h2 className="text-xl font-bold text-amber-300">Contadores do {sectorLabel(sector)}</h2>{admin&&<div className="flex gap-2"><input className={inputClass} placeholder="Nome do contador" value={counterName} onChange={e=>setCounterName(e.target.value)}/><button className="rounded-lg bg-amber-500 text-black px-4 font-bold" onClick={addCounter}>Cadastrar</button></div>}{counters.map(c=><div key={c.id} className="flex items-center justify-between border-b border-white/10 py-3"><span>{c.name}</span>{admin&&<div className="flex gap-2"><button onClick={()=>editCounter(c)} className="rounded-lg bg-sky-700 px-3 py-2">Editar</button><button onClick={()=>removeCounter(c)} className="rounded-lg bg-red-800 px-3 py-2">Excluir</button></div>}</div>)}</section>}
     {tab==='contagem'&&<div className="space-y-5"><div className="flex flex-wrap gap-2"><button onClick={clearCount} className="rounded-lg bg-[#162a46] px-4 py-2">Nova contagem</button><button disabled={loading} onClick={()=>setTab('listas')} className="rounded-lg bg-amber-500 text-black px-4 py-2 font-bold">Lista de Compras</button><button disabled={loading||!draftLoaded} onClick={finishStart} className="rounded-lg bg-emerald-600 px-4 py-2 font-bold">Finalizar Contagem</button></div><p className="text-sm text-amber-300">{visibleProducts.length-pending().length} de {visibleProducts.length} produtos contados. {finished?`Finalizada por ${finished.counter_name} em ${new Date(finished.finished_at).toLocaleString('pt-BR')}`:'Aguardando finalização.'}</p><p className="text-xs text-zinc-400">As quantidades são salvas automaticamente no banco. Campo vazio: não contado. Zero: contado e sem unidades. Para produtos com fardo, informe fardos fechados e unidades avulsas separadamente.</p>{Object.entries(groups).map(([cat,rows])=><section key={cat} className="rounded-xl border border-sky-800/40 bg-[#0d1727] overflow-hidden"><h2 className="bg-[#142c4c] border-l-4 border-amber-500 px-4 py-3 font-bold">{cat}</h2><div className="divide-y divide-white/5">{rows.map(p=>{const pack=Number(p.units_per_package)||1;const q=counts[p.id]??'';const f=packages[p.id]??'';const counted=q!==''||f!=='';const total=(Number(q)||0)+(Number(f)||0)*pack;const missing=counted&&p.target!=null?Math.max(0,p.target-total):null;return <div key={p.id} className="p-3 flex flex-wrap gap-3 items-center"><div className="flex-1 min-w-[170px]"><strong className="text-sm">{p.name}</strong><p className="text-xs text-zinc-400">Ideal: {admin?(p.target??'a definir'):'restrito'} {pack>1?`unidades · ${pack} por fardo`:''}</p></div>{pack>1&&<label className="text-xs w-28">Fardos{countInput(p,'packages',f,'Fardos')}</label>}<label className="text-xs w-28">{pack>1?'Avulsas':'Unidades'}{countInput(p,'counts',q,'Contar')}</label><span className="text-xs text-amber-300 w-32">{admin?`Em estoque: ${counted?total:'—'} · Faltam: ${missing??'—'}`:'Contagem'}</span></div>})}</div></section>)}</div>}
-        {tab==='cadastro'&&<div className="space-y-5"><div className="rounded-xl border border-amber-500/20 bg-[#111c2b] p-5 space-y-4"><h2 className="font-bold text-amber-300">{editing?'Editar produto':'Cadastrar novo produto'}</h2><div className="grid grid-cols-1 md:grid-cols-3 gap-3">{[['name','Nome'],['category','Categoria'],['unit','Unidade'],...(admin?[['units_per_package','Unidades por caixa/fardo'],['cost','Preço de custo (R$)']]:[]),['notes','Observações']].map(([key,label])=><label key={key} className="text-xs text-zinc-300">{label}<input className={`${inputClass} mt-1`} type={['target','reduced_target','cost','units_per_package'].includes(key)?'number':'text'} min="0" step="any" value={form[key]??''} onChange={e=>setForm(f=>({...f,[key]:e.target.value}))}/></label>)}</div><div className="flex gap-2"><button onClick={saveProduct} className="bg-sky-600 px-5 py-2 rounded-lg font-bold">Salvar produto</button>{editing&&<button onClick={()=>{setEditing(null);setForm(blank)}} className="bg-zinc-700 px-5 py-2 rounded-lg">Cancelar</button>}</div></div>{Object.entries(groups).map(([cat,rows])=><section key={cat} className="rounded-xl bg-[#101a29] p-4"><h3 className="text-amber-300 font-bold mb-3">{cat}</h3>{rows.map(p=><div key={p.id} className="flex items-center justify-between gap-3 border-t border-white/10 py-3"><div className="min-w-0"><strong className="text-sm">{p.name}</strong>{admin&&<p className="text-xs text-zinc-400">Ideal: {p.target??'—'} · Reduzido: {p.reduced_target??'—'} · Custo: {money(p.cost)} · Embalagem: {p.units_per_package??'—'}</p>}</div><div className="flex gap-2">{admin&&<button aria-label={`Editar ${p.name}`} onClick={()=>edit(p)} className="p-2 bg-sky-900/60 rounded-lg"><Pencil size={16}/></button>}{admin&&<button aria-label={`Excluir ${p.name}`} onClick={()=>remove(p)} className="p-2 bg-red-900/50 rounded-lg"><Trash2 size={16}/></button>}</div></div>)}</section>)}</div>}
+        {tab==='cadastro'&&<div className="space-y-5">{sector==='doce'&&admin&&<div className="rounded-xl border border-amber-500/30 bg-[#111c2b] p-4 flex flex-wrap items-center justify-between gap-3"><span className="text-sm text-zinc-200">Cadastrar os 35 produtos da lista de doces (sem duplicar os existentes)</span><button disabled={loading} onClick={importarDoces} className="bg-amber-500 text-black font-bold px-4 py-3 rounded-lg disabled:opacity-50">Cadastrar lista de doces</button></div>}<div className="rounded-xl border border-amber-500/20 bg-[#111c2b] p-5 space-y-4"><h2 className="font-bold text-amber-300">{editing?'Editar produto':'Cadastrar novo produto'}</h2><div className="grid grid-cols-1 md:grid-cols-3 gap-3">{[['name','Nome'],['category','Categoria'],['unit','Unidade'],...(admin?[['units_per_package','Unidades por caixa/fardo'],['cost','Preço de custo (R$)']]:[]),['notes','Observações']].map(([key,label])=><label key={key} className="text-xs text-zinc-300">{label}<input className={`${inputClass} mt-1`} type={['target','reduced_target','cost','units_per_package'].includes(key)?'number':'text'} min="0" step="any" value={form[key]??''} onChange={e=>setForm(f=>({...f,[key]:e.target.value}))}/></label>)}</div><div className="flex gap-2"><button onClick={saveProduct} className="bg-sky-600 px-5 py-2 rounded-lg font-bold">Salvar produto</button>{editing&&<button onClick={()=>{setEditing(null);setForm(blank)}} className="bg-zinc-700 px-5 py-2 rounded-lg">Cancelar</button>}</div></div>{Object.entries(groups).map(([cat,rows])=><section key={cat} className="rounded-xl bg-[#101a29] p-4"><h3 className="text-amber-300 font-bold mb-3">{cat}</h3>{rows.map(p=><div key={p.id} className="flex items-center justify-between gap-3 border-t border-white/10 py-3"><div className="min-w-0"><strong className="text-sm">{p.name}</strong>{admin&&<p className="text-xs text-zinc-400">Ideal: {p.target??'—'} · Reduzido: {p.reduced_target??'—'} · Custo: {money(p.cost)} · Embalagem: {p.units_per_package??'—'}</p>}</div><div className="flex gap-2">{admin&&<button aria-label={`Editar ${p.name}`} onClick={()=>edit(p)} className="p-2 bg-sky-900/60 rounded-lg"><Pencil size={16}/></button>}{admin&&<button aria-label={`Excluir ${p.name}`} onClick={()=>remove(p)} className="p-2 bg-red-900/50 rounded-lg"><Trash2 size={16}/></button>}</div></div>)}</section>)}</div>}
     {tab==='configurar'&&admin&&<section className="rounded-xl bg-[#101a29] p-5 space-y-4"><h2 className="text-xl font-bold text-amber-300">Configurar Estoque · {sectorLabel(sector)}</h2><p className="text-sm text-zinc-400">Defina a quantidade ideal para compra total e a quantidade mínima para compra reduzida. Somente o administrador pode alterar estes valores.</p>{visibleProducts.map(p=><div key={p.id} className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_130px_130px_110px] gap-3 items-end border-t border-white/10 py-3"><strong className="text-sm self-center">{p.name}</strong>{[['target','Estoque normal'],['reduced_target','Estoque reduzido']].map(([field,label])=><label key={field} className="text-xs text-zinc-300">{label}<input type="number" min="0" step="any" className={inputClass} value={(configDraft[p.id]?.[field]??p[field])??''} onChange={e=>setConfigDraft(prev=>({...prev,[p.id]:{...(prev[p.id]||{}),[field]:e.target.value}}))}/></label>)}<button disabled={loading} onClick={()=>saveTargets(p)} className="bg-sky-600 rounded-lg px-3 py-3 font-bold">Salvar</button></div>)}{!visibleProducts.length&&<p className="text-zinc-400">Cadastre produtos neste setor para configurar as quantidades.</p>}</section>}
          {finishDialog&&<div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4"><div className="bg-[#12243c] rounded-xl p-6 w-full max-w-md space-y-4 border border-amber-500/40"><h2 className="font-bold text-xl">Quem realizou a contagem?</h2><p className="text-sm text-zinc-300">Selecione seu nome e confirme.</p><div className="grid grid-cols-2 gap-3">{counters.map(c=><button key={c.id} disabled={loading} onClick={()=>setSelectedCounter(c.id)} className={`rounded-xl p-4 font-bold transition-all duration-300 ${selectedCounter===c.id?'bg-amber-400 text-black ring-4 ring-amber-200/70 scale-105 shadow-[0_0_24px_rgba(251,191,36,.65)]':'bg-sky-700 text-white'}`}>{selectedCounter===c.id?'✓ ':''}{c.name}</button>)}</div><button disabled={loading||!selectedCounter} onClick={()=>finishCount(selectedCounter)} className="w-full rounded-lg bg-emerald-600 disabled:opacity-40 p-3 font-bold">{loading?'Salvando...':'OK'}</button></div></div>}
      {showSuccess&&<div className="fixed inset-0 z-[250] bg-black/80 flex items-center justify-center p-4 pointer-events-none"><div role="status" className="text-center rounded-3xl border-4 border-emerald-400 bg-[#09251d] p-8 shadow-[0_0_65px_rgba(52,211,153,.6)] animate-pulse"><div className="text-6xl mb-5">✓</div><div className="text-4xl md:text-7xl font-black text-emerald-300 tracking-wide">CONTAGEM FEITA!</div></div></div>}
