@@ -169,6 +169,57 @@ export default function ComprasEstoque(){
   const [loading,setLoading]=useState(false);
   const [packages,setPackages]=useState({}),[modal,setModal]=useState(false),[draftLoaded,setDraftLoaded]=useState(false);
   const [counters,setCounters]=useState([]),[counterName,setCounterName]=useState(''),[finished,setFinished]=useState(null),[finishDialog,setFinishDialog]=useState(false);
+  const [entryAmounts,setEntryAmounts]=useState({});
+  const [entryRecords,setEntryRecords]=useState([]);
+  const [entryDialog,setEntryDialog]=useState(false);
+  const [entryCounter,setEntryCounter]=useState(null);
+  const [entryPreview,setEntryPreview]=useState(null);
+  const entryStorageKey='dlotus_entradas_v1';
+  const lastSevenDays=items=>(Array.isArray(items)?items:[]).filter(x=>Date.now()-new Date(x.created_at).getTime()<7*86400000 && Date.now()>=new Date(x.created_at).getTime());
+  useEffect(()=>{
+    try {
+      const saved=lastSevenDays(JSON.parse(localStorage.getItem(entryStorageKey)||'[]'));
+      setEntryRecords(saved);
+      localStorage.setItem(entryStorageKey,JSON.stringify(saved));
+    }catch(e){setEntryRecords([]);toast.error('Não foi possível carregar o histórico local de entradas')}
+  },[]);
+  const finishEntryStart=()=>{
+    if(!Object.entries(entryAmounts).some(([,v])=>v!==''&&Number(v)>0))return toast.error('Informe pelo menos um produto recebido');
+    if(!counters.length)return toast.error('Cadastre um nome na aba Contador');
+    setEntryCounter(null);setEntryDialog(true);
+  };
+  const finishEntry=()=>{
+    const counter=counters.find(c=>String(c.id)===String(entryCounter));
+    if(!counter)return toast.error('Selecione o funcionário');
+    const rows=visibleProducts.filter(p=>Number(entryAmounts[p.id])>0).map(p=>({
+      product_id:p.id,name:p.name,category:p.category,unit:p.unit,
+      quantity:Number(entryAmounts[p.id]),units_per_package:p.units_per_package
+    }));
+    if(!rows.length)return toast.error('Informe os produtos recebidos');
+    const record={id:`${Date.now()}-${Math.random().toString(36).slice(2)}`,sector,
+      counter_name:counter.name,created_at:new Date().toISOString(),rows};
+    try{
+      const updated=lastSevenDays([record,...entryRecords]);
+      localStorage.setItem(entryStorageKey,JSON.stringify(updated));
+      setEntryRecords(updated);setEntryAmounts({});setEntryDialog(false);setEntryCounter(null);
+      setEntryPreview(record);toast.success(`Entrada finalizada com sucesso por ${counter.name}!`);
+    }catch(e){toast.error('Não foi possível salvar a entrada neste dispositivo')}
+  };
+  const entryHtml=doc=>{
+    const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const groups={};doc.rows.forEach(r=>(groups[r.category]??=[]).push(r));
+    return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Lista de Entrada D'Lotus</title><style>body{font:15px Arial;background:#09172b;color:white;padding:22px}h1,h2{color:#d9b453}table{width:100%;border-collapse:collapse}th,td{padding:8px;text-align:left;border-bottom:1px solid #888}@media print{@page{size:80mm auto;margin:2mm}body{background:white;color:black;width:76mm;padding:0;margin:0;font:10px Arial}h1,h2{color:black}th,td{padding:3px}}</style></head><body><h1>D’LOTUS · LISTA DE ENTRADA</h1><p>Setor: ${esc(doc.sector)}<br>Funcionário: ${esc(doc.counter_name)}<br>Data: ${esc(new Date(doc.created_at).toLocaleString('pt-BR'))}</p>${Object.entries(groups).map(([cat,rows])=>`<h2>${esc(cat)}</h2><table><tr><th>Produto</th><th>Quantidade recebida</th></tr>${rows.map(r=>`<tr><td>${esc(r.name)}</td><td>${esc(r.quantity)} ${esc(r.unit)}</td></tr>`).join('')}</table>`).join('')}<p>Registro de recebimento — não altera o estoque.</p></body></html>`;
+  };
+  const printEntry=doc=>{const w=window.open('','_blank');if(!w)return toast.error('Permita pop-ups para imprimir');w.document.write(entryHtml(doc));w.document.close();w.focus();setTimeout(()=>w.print(),350)};
+  const shareEntry=async doc=>{
+    const lines=['D’LOTUS - LISTA DE ENTRADA',`Setor: ${sectorLabel(doc.sector)}`,`Funcionário: ${doc.counter_name}`,new Date(doc.created_at).toLocaleString('pt-BR'),'──────────────────',...doc.rows.map(r=>`${r.name}: ${r.quantity} ${r.unit}`),'Registro sem alteração do estoque'];
+    const file=new File(['\\uFEFF',lines.join('\\r\\n')],'DLotus_Lista_Entrada.txt',{type:'text/plain'});
+    try{
+      if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({files:[file],title:'D’Lotus - Lista de Entrada'});return}
+      const url=URL.createObjectURL(file);const a=document.createElement('a');a.href=url;a.download=file.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+      toast.message('Arquivo TXT baixado. Anexe-o pelo WhatsApp como Documento.');
+    }catch(e){if(e?.name!=='AbortError')toast.error('Não foi possível compartilhar a lista')}
+  };
   const [keypad,setKeypad]=useState(null);
    const [selectedCounter,setSelectedCounter]=useState(null);
    const [showSuccess,setShowSuccess]=useState(false);
@@ -312,7 +363,7 @@ export default function ComprasEstoque(){
   return <div className="p-4 md:p-9 pb-28 text-white space-y-6" style={{background:'linear-gradient(135deg,#071328,#08090e)',minHeight:'100vh'}}>
     <div className="flex flex-wrap gap-3 items-center justify-between"><div><h1 className="text-3xl font-bold text-white flex items-center gap-3"><Package className="text-sky-400"/>Estoque / Compras</h1><p className="text-zinc-400 text-sm mt-1">Contagem manual, independente das vendas e caixas</p></div><span className="text-xs text-amber-300 border border-amber-500/30 rounded-full px-4 py-2">{visibleProducts.length} produtos cadastrados</span></div>
     <div className="flex flex-wrap gap-2">{allowedSectors.map(x=><button key={x} onClick={()=>chooseSector(x)} className={`px-5 py-2 rounded-xl font-bold ${sector===x?'bg-sky-600':'bg-[#15253c]'}`}>Estoque {sectorLabel(x)}</button>)}</div>
-    <div className="flex flex-wrap gap-2">{[['contagem','Contagem',ClipboardCheck],['cadastro','Produtos',Plus],['contador','Contador',ClipboardCheck],...(admin?[['configurar','Configurar Estoque',Pencil]]:[]),['historico','Histórico',History],['listas','Listas de compras',FileText]].map(([id,label,Icon])=><button key={id} onClick={()=>setTab(id)} className={`rounded-xl px-4 py-3 flex items-center gap-2 text-sm ${tab===id?'bg-[#15528b] text-white border border-amber-500/50':'bg-[#121c2c] text-zinc-300 border border-white/10'}`}><Icon size={16}/>{label}</button>)}</div>
+    <div className="flex flex-wrap gap-2">{[['contagem','Contagem',ClipboardCheck],['cadastro','Produtos',Plus],['contador','Contador',ClipboardCheck],...(admin?[['configurar','Configurar Estoque',Pencil]]:[]),['historico','Histórico',History],['listas','Listas de compras',FileText],['entradas','Lista de Entrada',Package]].map(([id,label,Icon])=><button key={id} onClick={()=>setTab(id)} className={`rounded-xl px-4 py-3 flex items-center gap-2 text-sm ${tab===id?'bg-[#15528b] text-white border border-amber-500/50':'bg-[#121c2c] text-zinc-300 border border-white/10'}`}><Icon size={16}/>{label}</button>)}</div>
     {tab==='contador'&&<section className="rounded-xl bg-[#101a29] p-5 space-y-4"><h2 className="text-xl font-bold text-amber-300">Contadores do {sectorLabel(sector)}</h2>{admin&&<div className="flex gap-2"><input className={inputClass} placeholder="Nome do contador" value={counterName} onChange={e=>setCounterName(e.target.value)}/><button className="rounded-lg bg-amber-500 text-black px-4 font-bold" onClick={addCounter}>Cadastrar</button></div>}{counters.map(c=><div key={c.id} className="flex items-center justify-between border-b border-white/10 py-3"><span>{c.name}</span>{admin&&<div className="flex gap-2"><button onClick={()=>editCounter(c)} className="rounded-lg bg-sky-700 px-3 py-2">Editar</button><button onClick={()=>removeCounter(c)} className="rounded-lg bg-red-800 px-3 py-2">Excluir</button></div>}</div>)}</section>}
     {tab==='contagem'&&<div className="space-y-5"><div className="flex flex-wrap gap-2"><button onClick={clearCount} className="rounded-lg bg-[#162a46] px-4 py-2">Nova contagem</button><button disabled={loading} onClick={()=>setTab('listas')} className="rounded-lg bg-amber-500 text-black px-4 py-2 font-bold">Lista de Compras</button><button disabled={loading||!draftLoaded} onClick={finishStart} className="rounded-lg bg-emerald-600 px-4 py-2 font-bold">Finalizar Contagem</button></div><p className="text-sm text-amber-300">{visibleProducts.length-pending().length} de {visibleProducts.length} produtos contados. {finished?`Finalizada por ${finished.counter_name} em ${new Date(finished.finished_at).toLocaleString('pt-BR')}`:'Aguardando finalização.'}</p><p className="text-xs text-zinc-400">As quantidades são salvas automaticamente no banco. Campo vazio: não contado. Zero: contado e sem unidades. Para produtos com fardo, informe fardos fechados e unidades avulsas separadamente.</p>{Object.entries(groups).map(([cat,rows])=><section key={cat} className="rounded-xl border border-sky-800/40 bg-[#0d1727] overflow-hidden"><h2 className="bg-[#142c4c] border-l-4 border-amber-500 px-4 py-3 font-bold">{cat}</h2><div className="divide-y divide-white/5">{rows.map(p=>{const pack=Number(p.units_per_package)||1;const q=counts[p.id]??'';const f=packages[p.id]??'';const counted=q!==''||f!=='';const total=(Number(q)||0)+(Number(f)||0)*pack;const missing=counted&&p.target!=null?Math.max(0,p.target-total):null;return <div key={p.id} className="p-3 flex flex-wrap gap-3 items-center"><div className="flex-1 min-w-[170px]"><strong className="text-sm">{p.name}</strong><p className="text-xs text-zinc-400">Ideal: {admin?(p.target??'a definir'):'restrito'} {pack>1?`unidades · ${pack} por fardo`:''}</p></div>{pack>1&&<label className="text-xs w-28">Fardos{countInput(p,'packages',f,'Fardos')}</label>}<label className="text-xs w-28">{pack>1?'Avulsas':'Unidades'}{countInput(p,'counts',q,'Contar')}</label><span className="text-xs text-amber-300 w-32">{admin?`Em estoque: ${counted?total:'—'} · Faltam: ${missing??'—'}`:'Contagem'}</span></div>})}</div></section>)}</div>}
         {tab==='cadastro'&&<div className="space-y-5">{sector==='doce'&&admin&&<div className="rounded-xl border border-amber-500/30 bg-[#111c2b] p-4 flex flex-wrap items-center justify-between gap-3"><span className="text-sm text-zinc-200">Cadastrar os 35 produtos da lista de doces (sem duplicar os existentes)</span><button disabled={loading} onClick={importarDoces} className="bg-amber-500 text-black font-bold px-4 py-3 rounded-lg disabled:opacity-50">Cadastrar lista de doces</button></div>}<div className="rounded-xl border border-amber-500/20 bg-[#111c2b] p-5 space-y-4"><h2 className="font-bold text-amber-300">{editing?'Editar produto':'Cadastrar novo produto'}</h2><div className="grid grid-cols-1 md:grid-cols-3 gap-3">{[['name','Nome'],['category','Categoria'],['unit','Unidade'],...(admin?[['units_per_package','Unidades por caixa/fardo'],['cost','Preço de custo (R$)']]:[]),['notes','Observações']].map(([key,label])=><label key={key} className="text-xs text-zinc-300">{label}<input className={`${inputClass} mt-1`} type={['target','reduced_target','cost','units_per_package'].includes(key)?'number':'text'} min="0" step="any" value={form[key]??''} onChange={e=>setForm(f=>({...f,[key]:e.target.value}))}/></label>)}</div><div className="flex gap-2"><button onClick={saveProduct} className="bg-sky-600 px-5 py-2 rounded-lg font-bold">Salvar produto</button>{editing&&<button onClick={()=>{setEditing(null);setForm(blank)}} className="bg-zinc-700 px-5 py-2 rounded-lg">Cancelar</button>}</div></div>{Object.entries(groups).map(([cat,rows])=><section key={cat} className="rounded-xl bg-[#101a29] p-4"><h3 className="text-amber-300 font-bold mb-3">{cat}</h3>{rows.map(p=><div key={p.id} className="flex items-center justify-between gap-3 border-t border-white/10 py-3"><div className="min-w-0"><strong className="text-sm">{p.name}</strong>{admin&&<p className="text-xs text-zinc-400">Ideal: {p.target??'—'} · Reduzido: {p.reduced_target??'—'} · Custo: {money(p.cost)} · Embalagem: {p.units_per_package??'—'}</p>}</div><div className="flex gap-2">{admin&&<button aria-label={`Editar ${p.name}`} onClick={()=>edit(p)} className="p-2 bg-sky-900/60 rounded-lg"><Pencil size={16}/></button>}{admin&&<button aria-label={`Excluir ${p.name}`} onClick={()=>remove(p)} className="p-2 bg-red-900/50 rounded-lg"><Trash2 size={16}/></button>}</div></div>)}</section>)}</div>}
